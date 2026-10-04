@@ -251,7 +251,6 @@ menu.button("New car", function() despawn(); local me = game.player(); if me the
 menu.button("Despawn", despawn)
 
 function on_round_start() car = nil; game.set_driver(nil, nil) end
-function on_disable() despawn() end
 function on_unload() despawn() end
 
 local test = nil

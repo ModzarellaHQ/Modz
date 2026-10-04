@@ -313,7 +313,6 @@ menu.button("Glock", function() equip(guns[1]) end)
 menu.button("AK-47", function() equip(guns[2]) end)
 menu.button("Holster", holster)
 
-function on_disable() holster() end
 function on_unload() holster() end
 function on_round_start() held, st.heading, st.force_aim = nil, nil, nil; reset_camera() end
 

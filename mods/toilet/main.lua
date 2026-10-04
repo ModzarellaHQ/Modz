@@ -155,7 +155,6 @@ menu.button("New toilet here", function() despawn(); local me = game.player(); i
 menu.button("Despawn", despawn)
 
 function on_round_start() toilet = nil end
-function on_disable() despawn() end
 function on_unload() despawn() end
 
 function update()
