@@ -16,6 +16,7 @@ local stain_mat = mat.unlit(mat.blob(96, 1, 78), rgb(0.3, 0.18, 0.06, 0.95))
 local chunk_mat = mat.solid(rgb(0.22, 0.12, 0.04), 0.6)
 
 local toilet
+local forced_thrust = false
 local cam_vel = Vector3.zero
 
 local function vol() return volume.value * audio.sfx() end
@@ -177,7 +178,7 @@ function fixed_update(dt)
   if t.rider and not alive(t.rider) then t.rider = nil; t.kseat:Stand(Vector3.zero) end
   local mine = t.rider and game.is_local(t.rider)
   local keys = mine and not game.counting_down() and input.allowed()
-  t.hold = keys and (thrust_key.held or input.key("g")) or false
+  t.hold = keys and (thrust_key.held or input.key("g")) or (mine and forced_thrust) or false
   local hover = keys and (input.key("leftCtrl") or input.key("rightCtrl"))
   t.thrusting = t.hold or (hover and t.altitude > s * 0.3)
 
@@ -239,3 +240,5 @@ function draw()
   ui.hud(string.format("%s   %d up", t.thrusting and "Blasting off" or "On the throne", math.floor(t.altitude)),
     string.format("Hold %s to fly · Ctrl hover · WASD steer · %s stand up", thrust_key.label, sit_key.label))
 end
+
+function test_thrust(on) forced_thrust = on end
