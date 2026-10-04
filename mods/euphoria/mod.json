@@ -1,7 +1,7 @@
 {
   "id": "euphoria",
   "name": "Euphoria",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "author": "Modz",
   "description": "Bodies react like people: they brace, flinch and clutch wounds, bleed, lose limbs and die.",
   "dependencies": []

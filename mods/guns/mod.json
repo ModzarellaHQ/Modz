@@ -1,7 +1,7 @@
 {
   "id": "guns",
   "name": "Guns",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": "Modz",
   "description": "A Glock 17 and an AK-47 with recoil, aiming down sights and reloads, in third and first person.",
   "dependencies": [],
