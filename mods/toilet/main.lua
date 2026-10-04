@@ -236,6 +236,6 @@ end
 function draw()
   local t = toilet
   if not t or not t.rider or not game.is_local(t.rider) then return end
-  ui.hud(string.format("%s   %d up", t.thrusting and "Blasting off" or "On the throne", t.altitude),
+  ui.hud(string.format("%s   %d up", t.thrusting and "Blasting off" or "On the throne", math.floor(t.altitude)),
     string.format("Hold %s to fly · Ctrl hover · WASD steer · %s stand up", thrust_key.label, sit_key.label))
 end
