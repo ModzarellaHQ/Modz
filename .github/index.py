@@ -17,16 +17,17 @@ for manifest in sorted(root.glob("mods/*/mod.json")):
         errors.append(f"{folder.name}/mod.json: id must be \"{folder.name}\"")
     if not re.fullmatch(r"\d+\.\d+\.\d+", mod.get("version", "")):
         errors.append(f"{folder.name}/mod.json: version must look like 1.2.3")
-    files = sorted(p for p in (folder / "files").rglob("*") if p.is_file() and p.name != ".DS_Store")
-    if not any(p.suffix == ".dll" for p in files):
-        errors.append(f"{folder.name}: no .dll in files/")
+    if not (folder / "main.lua").is_file():
+        errors.append(f"{folder.name}: no main.lua")
+    scripts = sorted(folder.glob("*.lua"))
+    assets = sorted(p for p in (folder / "files").rglob("*") if p.is_file() and p.name != ".DS_Store")
     mod.setdefault("dependencies", [])
     mod["files"] = [{
         "path": p.relative_to(root).as_posix(),
-        "target": p.relative_to(folder / "files").as_posix(),
+        "target": p.relative_to(folder / "files" if p in assets else folder).as_posix(),
         "size": p.stat().st_size,
         "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
-    } for p in files]
+    } for p in scripts + assets]
     mods.append(mod)
 
 ids = {m["id"] for m in mods}
