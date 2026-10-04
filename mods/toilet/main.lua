@@ -33,9 +33,11 @@ local function spawn_chunk(t)
   rb.mass = 0.1
   rb.velocity = t.rb.velocity - t.go.transform.up * s * rand(4, 8) + Random.insideUnitSphere * s
   rb.angularVelocity = Random.insideUnitSphere * 10
-  local born = Time.time
+  local col = go:GetComponent("Collider")
+  for _, c in ipairs(t.cols) do physics.ignore(col, c) end
+  if t.rider then body.ignore(t.rider, { col }, true) end
   physics.on_hit(go, function(c)
-    if Time.time - born < 0.15 or c.contactCount == 0 or game.is_vehicle(c.rigidbody) then return end
+    if c.contactCount == 0 or game.is_vehicle(c.rigidbody) then destroy(go) return end
     local p = c:GetContact(0)
     local w = s * rand(0.3, 0.6)
     fx.decal("PoopStain", 150, p.point, p.normal, Vector3.zero, w, w * rand(0.6, 1.2), stain_mat)
