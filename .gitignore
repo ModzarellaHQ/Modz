@@ -1,5 +1,6 @@
-build/
 obj/
 bin/
 .DS_Store
 dev/
+index.json
+*.pdb

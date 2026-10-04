@@ -1,0 +1,13 @@
+{
+  "id": "toilet",
+  "name": "Rocket Toilet",
+  "version": "2.1.0",
+  "author": "Modz",
+  "description": "Sit on a toilet (T) and fly it on a column of poop (hold Space, WASD to steer, Ctrl to hover).",
+  "dependencies": [
+    "core"
+  ],
+  "credits": [
+    "Model: \"monsterup toilet\" by photon (that one larry), CC-BY 4.0, https://sketchfab.com/Professor_E12"
+  ]
+}
