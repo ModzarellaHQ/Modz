@@ -385,14 +385,14 @@ function fixed_update(dt)
 end
 
 function late_update()
-  if held and fp() then
+  if held and fp() and not camera.flying() then
     local pos, rot = view_pose(held.owner)
     held.go.transform:SetPositionAndRotation(pos, rot)
   end
 end
 
 function draw()
-  if not held then return end
+  if not held or camera.flying() then return end
   local def = held.def
   local cx, cy = ui.width() / 2, ui.height() / 2
   if not fp() then
