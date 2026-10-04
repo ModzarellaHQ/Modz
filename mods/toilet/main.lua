@@ -88,7 +88,7 @@ local function spawn(r)
   t.nozzle = new_object("nozzle", t.go.transform).transform
   t.nozzle.localPosition = vec(0, 0.02 * t.s, center.z + extent.z * 0.12)
   t.nozzle.localRotation = euler(90, 0, 0)
-  t.kseat = body.seat(t.go, t.seat, "toilet")
+  t.kseat = body.seat(t.go, t.seat, "upright")
 
   local s = t.s
   t.poop = fx.particles(t.nozzle.gameObject, {

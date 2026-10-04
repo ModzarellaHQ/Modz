@@ -96,7 +96,7 @@ local function build(r)
   c.hands = new_object("steeringWheel", c.go.transform).transform
   c.hands.localPosition = c.seat.localPosition + vec(0, s * 0.45, s * 0.75)
   c.cam = new_object("CarCamera", c.go.transform).transform
-  c.kseat = body.seat(c.go, c.seat, "drive", c.hands)
+  c.kseat = body.seat(c.go, c.seat, "reclined", c.hands)
 
   c.lights = {}
   for i, side in ipairs({ 1, -1 }) do
