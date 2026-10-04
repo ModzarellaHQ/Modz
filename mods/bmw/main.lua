@@ -59,7 +59,6 @@ local function build(r)
   rb.mass, rb.drag, rb.angularDrag, rb.maxAngularVelocity = M, 0.02, 1.5, 12
   rb.interpolation = RigidbodyInterpolation.Interpolate
   rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic
-  game.add_vehicle(rb)
   c.k = M * g / 4 / (0.45 * c.rest)
   c.damp = 2 * 0.55 * math.sqrt(c.k * M / 4)
 
@@ -93,6 +92,10 @@ local function build(r)
     w.transform.localScale = Vector3.one * c.L
     c.wheels[i] = { pivot = pivot, rest_pos = vec(center.x, center.y + c.rest * 0.55, center.z), front = i <= 2 }
   end
+
+  local pivots = {}
+  for _, w in ipairs(c.wheels) do table.insert(pivots, w.pivot) end
+  game.add_vehicle(rb, pivots)
 
   c.seat = new_object("seat", c.go.transform).transform
   c.seat.localPosition = vec(-c.W * 0.2, c.H * 0.42, -c.L * 0.07)
