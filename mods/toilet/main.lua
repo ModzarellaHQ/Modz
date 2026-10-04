@@ -37,7 +37,8 @@ local function spawn_chunk(t)
   for _, c in ipairs(t.cols) do physics.ignore(col, c) end
   if t.rider then body.ignore(t.rider, { col }, true) end
   physics.on_hit(go, function(c)
-    if c.contactCount == 0 or game.is_vehicle(c.rigidbody) then destroy(go) return end
+    if c.contactCount == 0 or c.gameObject.name == "PoopChunk" then return end
+    if c.rigidbody then destroy(go) return end
     local p = c:GetContact(0)
     local w = s * rand(0.3, 0.6)
     fx.decal("PoopStain", 150, p.point, p.normal, Vector3.zero, w, w * rand(0.6, 1.2), stain_mat)
