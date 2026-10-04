@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Guns", "2.1.0")]
+    [BepInPlugin(GUID, "Guns", "2.1.1")]
     [BepInDependency(CorePlugin.GUID)]
     public class GunsPlugin : BaseUnityPlugin
     {
@@ -431,8 +431,8 @@ namespace Modz
             var camera = StageManager.Instance ? StageManager.Instance.cameraRig.mainCamera : null;
             if (!FirstPerson() && camera)
             {
-                Vector3 sp = camera.WorldToScreenPoint(lastAim);
-                if (sp.z > 0f) { cx = sp.x; cy = Screen.height - sp.y; }
+                Vector3 vp = camera.WorldToViewportPoint(lastAim);
+                if (vp.z > 0f) { cx = vp.x * Screen.width; cy = (1f - vp.y) * Screen.height; }
             }
             if (Crosshair.Value)
             {
@@ -672,12 +672,32 @@ namespace Modz
             if (f.sqrMagnitude > 1e-4f) heading = f.normalized;
         }
 
+        private static Vector3 shoulderShift;
+        private static float shoulderBlend;
+
+        [HarmonyPrefix, HarmonyPatch(typeof(CameraRig), "LateUpdate")]
+        private static void UndoShoulder(CameraRig __instance)
+        {
+            if (__instance.mainCamera) __instance.mainCamera.transform.position -= shoulderShift;
+            shoulderShift = Vector3.zero;
+        }
+
         [HarmonyPostfix, HarmonyPriority(Priority.Last), HarmonyPatch(typeof(CameraRig), "LateUpdate")]
         private static void AimZoom(CameraRig __instance)
         {
             var g = GunsPlugin.Instance;
-            if (!g || !g.GunOut || !__instance.mainCamera) return;
-            __instance.mainCamera.fieldOfView *= Mathf.Lerp(1f, g.AimZoom.Value, g.aimBlend);
+            var cam = __instance.mainCamera;
+            if (!cam) return;
+            bool on = g && g.GunOut && !CheeseApi.FirstPerson;
+            shoulderBlend = Mathf.MoveTowards(shoulderBlend, on ? 1f + (g ? g.aimBlend : 0f) : 0f, Time.deltaTime * 3f);
+            var me = ModCommon.LocalRagdoll();
+            if (shoulderBlend > 0f && me)
+            {
+                float sc = ModCommon.BodyScale(me);
+                shoulderShift = (cam.transform.right * 0.3f + cam.transform.up * 0.08f) * sc * shoulderBlend;
+                cam.transform.position += shoulderShift;
+            }
+            if (g && g.GunOut) cam.fieldOfView *= Mathf.Lerp(1f, g.AimZoom.Value, g.aimBlend);
         }
     }
 }
