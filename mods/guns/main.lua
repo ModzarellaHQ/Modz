@@ -141,6 +141,7 @@ local function reset_camera()
 end
 
 local function holster()
+  st.force_aim = nil
   if not held then return end
   for _, j in ipairs(held.joints) do destroy(j) end
   if alive(held.owner) then set_control(held.owner, false) end
@@ -314,7 +315,7 @@ menu.button("Holster", holster)
 
 function on_disable() holster() end
 function on_unload() holster() end
-function on_round_start() held, st.heading = nil, nil; reset_camera() end
+function on_round_start() held, st.heading, st.force_aim = nil, nil, nil; reset_camera() end
 
 function update(dt)
   local me = game.player()
