@@ -1,7 +1,7 @@
 {
   "id": "toilet",
   "name": "Rocket Toilet",
-  "version": "3.1.0",
+  "version": "3.1.1",
   "author": "Modz",
   "description": "Sit on a toilet (T) and fly it on a column of poop. Space to thrust, WASD to steer, Ctrl to hover.",
   "dependencies": [],
