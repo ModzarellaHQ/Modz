@@ -64,8 +64,8 @@ Scripts are MIT, like the rest of this repository. Models and sounds keep their 
 
 ## Submitting
 
-1. Run `python3 .github/index.py`. It checks the rules above and must print `index.json: N mods` without errors.
-2. Point Modzarella at your clone with `Modzarella source .`, install your mod and play a round with it in Play Offline.
+1. Run `python3 .github/index.py`. It checks the rules above and must print `mods/index.json: N mods` without errors.
+2. Point Modzarella at your clone with `Modzarella source mods`, install your mod and play a round with it in Play Offline.
 3. Open a pull request with a short description and a screenshot.
 
 To update a mod, change what you need, bump `version` and open a pull request the same way.
