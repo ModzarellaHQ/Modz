@@ -275,7 +275,7 @@ local function do_sever(g, part, rel)
     g.severed[p:GetInstanceID()] = true
     if p.joint then destroy_now(p.joint) end
     for _, c in ipairs(components(p, "Collider")) do c.enabled = false end
-    if p.rigidBody then
+    if p.rigidBody and not p.rigidBody.isKinematic then
       p.rigidBody.velocity = Vector3.zero
       p.rigidBody.isKinematic = true
       p.rigidBody.detectCollisions = false
@@ -382,6 +382,7 @@ local function tyres()
   local driver = game.driver()
   for _, v in ipairs(game.vehicles()) do
     local rb = v.body
+    if not alive(rb) then break end
     local speed = rb.velocity.magnitude
     for _, w in ipairs(v.wheels) do
       local id = w:GetInstanceID()

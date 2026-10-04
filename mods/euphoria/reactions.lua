@@ -6,7 +6,10 @@ local brains = {}
 local hold, step = 0, 0
 
 local function align(a, b, dir, k, d) body.align(a, b, dir, k, d, hold) end
-local function reach(hand, lower, upper, target, k, d) body.reach(hand, lower, upper, target, k, d, hold) end
+local function reach(hand, lower, upper, target, k, d)
+  if body.hands_busy(upper.ragdoll) then return end
+  body.reach(hand, lower, upper, target, k, d, hold)
+end
 local vehicles = {}
 
 local function brain(r)
@@ -51,6 +54,7 @@ local function car_incoming(r, k, d, sc)
   if game.seated(r) then return end
   for _, v in ipairs(vehicles) do
     local car = v.body
+    if not alive(car) then break end
     local to = r:GetRootPosition() - car.position
     local closing = Vector3.Dot(car.velocity, to.normalized)
     if closing > 50 and to.magnitude < closing * 0.8 then
