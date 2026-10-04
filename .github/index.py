@@ -32,7 +32,7 @@ for manifest in sorted(root.glob("mods/*/mod.json")):
         errors.append(f"{folder.name}: larger than 15 MB")
     mod.setdefault("dependencies", [])
     mod["files"] = [{
-        "path": p.relative_to(root).as_posix(),
+        "path": p.relative_to(root / "mods").as_posix(),
         "target": p.relative_to(folder / "files" if p in assets else folder).as_posix(),
         "size": p.stat().st_size,
         "sha256": hashlib.sha256(p.read_bytes()).hexdigest(),
@@ -48,6 +48,6 @@ for m in mods:
 if errors:
     sys.exit("\n".join(errors))
 index = {"game": "Cheese Rolling", "steamAppId": 3809440, "mods": mods}
-(root / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
-print(f"index.json: {len(mods)} mods")
+(root / "mods" / "index.json").write_text(json.dumps(index, indent=2, ensure_ascii=False) + "\n")
+print(f"mods/index.json: {len(mods)} mods")
 
