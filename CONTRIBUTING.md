@@ -50,6 +50,7 @@ A mod is 15 MB at most, scripts and files together. No other file types, no exec
 
 ## Code
 
+- **Reuse Core.** Seats, vehicles, holding objects, muscles, models, camera and effects are already built: see [Building blocks](https://github.com/ModzarellaHQ/Modzarella/blob/main/docs/lua-api.md#building-blocks). Don't rebuild them in your mod.
 - **Lua only.** Mods run in a sandbox without `os`, `io` or file access outside the mod folder.
 - **Stand alone.** A mod must work with no other mod installed. To react to other mods, use `events` (`bullet_hit`, `wheels_bloody`, or your own) and `game.vehicles()`, never names like `find("BMW")`.
 - **Settings.** Declare them with `setting.*`, give each a short `desc`, and keep the list short. Rarely used ones get `advanced = true`.
