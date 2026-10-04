@@ -54,7 +54,7 @@ A mod is 15 MB at most, scripts and files together. No other file types, no exec
 - **Stand alone.** A mod must work with no other mod installed. To react to other mods, use `events` (`bullet_hit`, `wheels_bloody`, or your own) and `game.vehicles()`, never names like `find("BMW")`.
 - **Settings.** Declare them with `setting.*`, give each a short `desc`, and keep the list short. Rarely used ones get `advanced = true`.
 - **Keys.** Pick defaults that don't clash with the game or the mods here, and check `input.allowed()` before acting on raw input.
-- **Clean up.** Destroy what you spawn in `on_unload` and `on_disable`, so Reload and the on/off switch leave nothing behind.
+- **Clean up.** Destroy what you spawn in `on_unload`, so Reload leaves nothing behind.
 - **Performance.** Nothing heavy every frame on every ragdoll. Use `hold` on muscles and spread work across steps, as Euphoria does.
 - **Offline only.** No online features, nothing that sends data anywhere, nothing meant to cheat against other players.
 
