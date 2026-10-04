@@ -1,7 +1,7 @@
 {
   "id": "bmw",
   "name": "BMW",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "author": "Modz",
   "description": "Drivable BMW M2: crash damage, dents, headlights, real engine sounds, a seated driver, reset (Backspace).",
   "dependencies": [],
