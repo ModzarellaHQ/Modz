@@ -1,3 +1,5 @@
+local M = {}
+
 local S = "Euphoria"
 local strength = setting.number{ section = S, name = "Muscle strength", default = 1, min = 0.2, max = 3, desc = "How hard the ragdolls fight." }
 local on_you = setting.toggle{ section = S, name = "On you", default = true, desc = "Your own ragdoll reacts too." }
@@ -145,13 +147,13 @@ local function tick(r)
   car_incoming(r, k, d, sc)
 end
 
-function on_round_start()
+function M.reset()
   brains = {}
 end
 
 local next_car_scan = 0
 
-function fixed_update()
+function M.fixed_update()
   if Time.time > next_car_scan then
     next_car_scan = Time.time + 0.5
     local go = find("BMW")
@@ -164,3 +166,5 @@ function fixed_update()
     if (step + i) % 4 == 0 and ((mine and on_you.value) or (not mine and on_bots.value)) then tick(r) end
   end
 end
+
+return M

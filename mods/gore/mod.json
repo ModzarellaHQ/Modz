@@ -1,8 +1,8 @@
 {
   "id": "gore",
   "name": "Gore",
-  "version": "2.2.0",
+  "version": "3.0.0",
   "author": "Modz",
-  "description": "Limbs tear off as real body parts, bleeding out, wounds, blood spatter, car and bullet gore.",
+  "description": "Limbs come off, bodies bleed out, and ragdolls brace, flinch and fight back.",
   "dependencies": []
 }
