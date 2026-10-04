@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Guns", "2.1.2")]
+    [BepInPlugin(GUID, "Guns", "2.2.0")]
     [BepInDependency(CorePlugin.GUID)]
     public class GunsPlugin : BaseUnityPlugin
     {

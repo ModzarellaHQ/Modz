@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Gore", "2.1.0")]
+    [BepInPlugin(GUID, "Gore", "2.2.0")]
     [BepInDependency(CorePlugin.GUID)]
     public class GorePlugin : BaseUnityPlugin
     {

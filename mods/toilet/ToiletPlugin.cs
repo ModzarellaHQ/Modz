@@ -9,7 +9,7 @@ using UnityEngine.InputSystem;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Rocket Toilet", "2.1.0")]
+    [BepInPlugin(GUID, "Rocket Toilet", "2.2.0")]
     [BepInDependency(CorePlugin.GUID)]
     public class ToiletPlugin : BaseUnityPlugin
     {

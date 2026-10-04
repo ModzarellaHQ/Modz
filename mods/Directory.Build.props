@@ -47,7 +47,7 @@
     <Reference Include="UnityEngine.ImageConversionModule"><HintPath>$(ManagedDir)/UnityEngine.ImageConversionModule.dll</HintPath><Private>false</Private></Reference>
     <Reference Include="UnityEngine.AnimationModule"><HintPath>$(ManagedDir)/UnityEngine.AnimationModule.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
-  <ItemGroup Condition="'$(MSBuildProjectName)' != 'Core'">
-    <ProjectReference Include="$(MSBuildThisFileDirectory)core/Core.csproj" Private="false" />
+  <ItemGroup>
+    <Reference Include="Modzarella.Core"><HintPath>$(GameDir)/BepInEx/plugins/Modzarella/Modzarella.Core.dll</HintPath><Private>false</Private></Reference>
   </ItemGroup>
 </Project>

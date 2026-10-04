@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Game Tweaks", "2.1.0")]
+    [BepInPlugin(GUID, "Game Tweaks", "2.2.0")]
     [BepInDependency(CorePlugin.GUID)]
     public class TweaksPlugin : BaseUnityPlugin
     {

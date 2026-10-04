@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "BMW", "2.1.0")]
+    [BepInPlugin(GUID, "BMW", "2.2.0")]
     [BepInDependency(CorePlugin.GUID)]
     public class CarPlugin : BaseUnityPlugin
     {
