@@ -1,0 +1,8 @@
+{
+  "id": "core",
+  "name": "CheeseMM Core",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Required by every mod. In-game mod menu (F1), mouse camera (F3), first person (V), zoom and speed FOV.",
+  "dependencies": []
+}

@@ -1,0 +1,10 @@
+{
+  "id": "euphoria",
+  "name": "Euphoria Ragdolls",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Bodies brace, shield their heads, flinch, writhe and struggle instead of flopping.",
+  "dependencies": [
+    "core"
+  ]
+}

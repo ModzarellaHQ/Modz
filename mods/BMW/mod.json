@@ -1,0 +1,14 @@
+{
+  "id": "bmw",
+  "name": "BMW",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Drivable BMW M2 (E): crash damage, dents, real engine sounds, a seated driver, reset (Backspace).",
+  "dependencies": [
+    "core"
+  ],
+  "credits": [
+    "Model: \"2026 ZACOE BMW G87 M2 Widebody Carbon Fiber Kit\" by Ddiaz Design, CC-BY-NC-SA 4.0, https://sketchfab.com/ddiaz-design (decimated)",
+    "Engine and car sounds: OpenGameArt, CC0"
+  ]
+}

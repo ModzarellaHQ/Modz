@@ -1,0 +1,10 @@
+{
+  "id": "gametweaks",
+  "name": "Game Tweaks",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Endless round (F2), freeze bots (F4), VSync and FPS cap.",
+  "dependencies": [
+    "core"
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "id": "guns",
+  "name": "Guns",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Glock 17 (1) and AK-47 (2): recoil, aim down sights, reloads, bullet wounds with Gore.",
+  "dependencies": [
+    "core"
+  ],
+  "credits": [
+    "Glock model by thronetools, CC-BY 4.0, https://sketchfab.com/thronetools",
+    "AK-47 model by ErhanMatur, CC-BY 4.0, https://sketchfab.com/erhanmatur",
+    "Gun sounds: OpenGameArt, CC0"
+  ]
+}

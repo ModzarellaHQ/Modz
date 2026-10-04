@@ -1,0 +1,10 @@
+{
+  "id": "gore",
+  "name": "Gore",
+  "version": "2.0.0",
+  "author": "CheeseMods",
+  "description": "Limbs tear off as real body parts, bleeding out, wounds, blood spatter, car and bullet gore.",
+  "dependencies": [
+    "core"
+  ]
+}
