@@ -1,0 +1,9 @@
+[build]
+  command = "python3 .github/index.py"
+  publish = "mods"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Cache-Control = "public, max-age=300"
+    X-Content-Type-Options = "nosniff"
