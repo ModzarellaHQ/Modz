@@ -32,6 +32,7 @@ local st = { aim = Vector3.zero, aiming = false, ads = 0, bloom = 0, kick = 0, r
              recoil_debt = 0, heading = nil, down_time = 0, sway = Vector3.zero, last_yaw = 0, last_pitch = 0, queued = 0 }
 
 local function fp() return camera.first_person() end
+local function ready() return held and alive(held.owner) and alive(held.go) and alive(camera.main()) end
 
 -- a point on the held gun in its own space
 local function point(def, z, y)
@@ -324,7 +325,7 @@ function update(dt)
   end
   if holster_key.down then holster() end
   if not held then return end
-  if held.owner ~= me then holster() return end
+  if held.owner ~= me or not ready() then holster() return end
 
   local def = held.def
   local rig = camera.rig()
@@ -359,7 +360,7 @@ function update(dt)
 end
 
 function fixed_update(dt)
-  if not held then return end
+  if not ready() then return end
   local me = held.owner
   local sc = game.scale(me)
 
@@ -385,7 +386,7 @@ function fixed_update(dt)
 end
 
 function late_update()
-  if held and fp() and not camera.flying() then
+  if ready() and fp() and not camera.flying() then
     local pos, rot = view_pose(held.owner)
     held.go.transform:SetPositionAndRotation(pos, rot)
   end
