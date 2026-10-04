@@ -5,7 +5,6 @@ local amount = setting.number{ section = S, name = "Poop amount", default = 1, m
 local volume = setting.number{ section = S, name = "Volume", default = 0.7, min = 0, max = 1, desc = "On top of the game's volume." }
 local control = setting.number{ section = S, name = "Air control", default = 1, min = 0, max = 3, desc = "How hard WASD tilts the toilet.", advanced = true }
 local eject = setting.number{ section = S, name = "Eject impact speed", default = 200, min = 60, max = 600, desc = "Crash speed that throws you off.", advanced = true }
-local size = setting.number{ section = S, name = "Size", default = 1, min = 0.5, max = 3, desc = "Toilet scale, from the next spawn.", advanced = true }
 local sit_key = setting.key{ name = "Sit / stand up", default = "T", desc = "Spawn the toilet if needed and sit on it, or stand up." }
 local thrust_key = setting.key{ name = "Poop thrust (hold)", default = "Space", desc = "Hold while seated to fly. Ctrl hovers." }
 
@@ -60,7 +59,7 @@ local function place_near(t, r)
 end
 
 local function spawn(r)
-  local t = { s = game.scale(r) * size.value, altitude = 0, thrusting = false, prev_vel = Vector3.zero, next_chunk = 0 }
+  local t = { s = game.scale(r), altitude = 0, thrusting = false, prev_vel = Vector3.zero, next_chunk = 0 }
   t.go = new_object("Rocket Toilet")
   local mass = 0
   for _, p in ipairs(body.parts(r)) do if p.rigidBody then mass = mass + p.rigidBody.mass end end
