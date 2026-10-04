@@ -1,8 +1,8 @@
 {
-  "id": "gore",
-  "name": "Gore",
-  "version": "3.0.0",
+  "id": "euphoria",
+  "name": "Euphoria",
+  "version": "3.1.0",
   "author": "Modz",
-  "description": "Limbs come off, bodies bleed out, and ragdolls brace, flinch and fight back.",
+  "description": "Bodies react like people: they brace, flinch and clutch wounds, bleed, lose limbs and die.",
   "dependencies": []
 }
