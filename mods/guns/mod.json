@@ -1,9 +1,9 @@
 {
   "id": "guns",
   "name": "Guns",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "author": "Modz",
-  "description": "Glock 17 and AK-47 with recoil, aiming, reloads and bullet wounds.",
+  "description": "A Glock 17 and an AK-47 with recoil, aiming down sights and reloads, in third and first person.",
   "dependencies": [],
   "credits": [
     "Glock model by thronetools, CC-BY 4.0, https://sketchfab.com/thronetools",

@@ -18,7 +18,7 @@ local guns = {
     grip = { 0.25, 0.3 }, support = { 0.28, 0.25 }, hip = { 0.1, -0.1, 0.38 }, ads = 0.5, sight = { 0.12, 1.0 }, muzzle = { 1, 0.8 }, eject = { 0.55, 0.85 }, key = pistol_key },
   { name = "AK-47", file = "ak47.glb", flip = false, length = 7.2, mag = 30, rpm = 600, auto = true, power = 200,
     spread = 0.25, bloom = 0.45, kick = 1.25, reload = 2.4, shots = { sounds.rifle_shot1, sounds.rifle_shot2, sounds.rifle_shot3 }, reload_sound = sounds.rifle_reload,
-    grip = { 0.36, 0.25 }, support = { 0.6, 0.45 }, hip = { 0.13, -0.19, 0.44 }, ads = 0.4, stock = { 0.02, 0.62 }, sight = { 0.42, 0.95 }, muzzle = { 1, 0.72 }, eject = { 0.47, 0.75 }, key = rifle_key },
+    grip = { 0.36, 0.25 }, support = { 0.6, 0.45 }, hip = { 0.13, -0.19, 0.5 }, ads = 0.4, stock = { 0.02, 0.62 }, sight = { 0.42, 0.95 }, muzzle = { 1, 0.72 }, eject = { 0.47, 0.75 }, key = rifle_key },
 }
 
 local flash_mat = mat.unlit(mat.blob(32, 0.5, 61), rgb(1, 0.85, 0.5))
