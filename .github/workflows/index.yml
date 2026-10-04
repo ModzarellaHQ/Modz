@@ -16,13 +16,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: python3 .github/index.py
-      - if: github.event_name == 'push'
+      - if: github.event_name == 'push' && !github.event.repository.private
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
 
   deploy:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push' && !github.event.repository.private
     needs: build
     runs-on: ubuntu-latest
     environment:
