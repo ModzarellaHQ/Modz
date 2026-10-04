@@ -277,6 +277,7 @@ local function do_sever(g, part, rel)
     for _, c in ipairs(components(p, "Collider")) do c.enabled = false end
     if p.rigidBody and not p.rigidBody.isKinematic then
       p.rigidBody.velocity = Vector3.zero
+      p.rigidBody.interpolation = RigidbodyInterpolation.None
       p.rigidBody.isKinematic = true
       p.rigidBody.detectCollisions = false
     end
