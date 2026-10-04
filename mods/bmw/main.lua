@@ -5,16 +5,10 @@ local paint = setting.choice{ section = "Car", name = "Paint", default = "Origin
 local volume = setting.number{ section = "Car", name = "Engine volume", default = 0.5, min = 0, max = 1, desc = "Car sounds, on top of the game's volume." }
 local steering = setting.number{ section = "Car", name = "Steering", default = 1, min = 0.2, max = 3, desc = "Steering multiplier.", advanced = true }
 local nitro_power = setting.number{ section = "Car", name = "Nitro (Shift)", default = 2.2, min = 1, max = 8, desc = "Acceleration multiplier while holding Shift.", advanced = true }
-local car_size = setting.number{ section = "Car", name = "Car size", default = 1, min = 0.5, max = 3, desc = "Scale relative to the player, from the next car.", advanced = true }
 local ram = setting.toggle{ section = "Car", name = "Ram launches bots", default = true, desc = "Hitting a bot sends it flying.", advanced = true }
-local show_driver = setting.toggle{ section = "Car", name = "Show driver", default = true, desc = "Show your ragdoll sitting in the car.", advanced = true }
-local crashes = setting.toggle{ section = "Crash", name = "Crash damage", default = true, desc = "Dents, sparks, debris, broken glass, smoke and fire." }
-local eject = setting.toggle{ section = "Crash", name = "Eject driver", default = true, desc = "Huge crashes throw you through the windscreen." }
-local damage_mul = setting.number{ section = "Crash", name = "Damage multiplier", default = 1, min = 0.1, max = 5, desc = "How easily the car deforms and breaks.", advanced = true }
-local eject_speed = setting.number{ section = "Crash", name = "Eject impact speed", default = 170, min = 60, max = 500, desc = "Impact speed that ejects the driver.", advanced = true }
 local enter_key = setting.key{ name = "Enter / exit car", default = "E", desc = "Spawn the car if needed and get in, or get out." }
 local flip_key = setting.key{ name = "Flip car", default = "R", desc = "While driving: back onto the wheels." }
-local reset_key = setting.key{ name = "Reset car", default = "Backspace", desc = "Car next to you, upright, stopped and repaired." }
+local reset_key = setting.key{ name = "Reset car", default = "Backspace", desc = "Put the car next to you, upright and stopped." }
 
 local sounds = audio.folder("sounds")
 local fx_mat = mat.unlit(mat.blob(32, 0, 21))
@@ -38,9 +32,9 @@ local function loop(clip) return audio.source(car.go, { clip = clip, loop = true
 
 local function build(r)
   local m = model.load("car.glb")
-  local s = game.scale(r) * car_size.value
-  local c = { s = s, damage = 0, wheels = {}, spin = { 0, 0, 0, 0 }, comp = { 0, 0, 0, 0 }, steer = 0, throttle = 0, upside = 0,
-              last_crash = 0, scrape = 0, slip = 0, last_gear = 0, prev_vel = Vector3.zero, cam_vel = Vector3.zero }
+  local s = game.scale(r)
+  local c = { s = s, wheels = {}, spin = { 0, 0, 0, 0 }, comp = { 0, 0, 0, 0 }, steer = 0, throttle = 0, upside = 0,
+              last_hit = 0, scrape = 0, slip = 0, last_gear = 0, cam_vel = Vector3.zero }
   car = c
   c.L = 4.3 * s
   c.W = m.BodyBounds.size.x * c.L
@@ -90,7 +84,7 @@ local function build(r)
     pivot.localPosition = center
     local w = model.clone(wheel_models[i], pivot)
     w.transform.localScale = Vector3.one * c.L
-    c.wheels[i] = { pivot = pivot, rest_pos = vec(center.x, center.y + c.rest * 0.55, center.z), front = i <= 2 }
+    c.wheels[i] = { pivot = pivot, center = center, rest_pos = vec(center.x, center.y + c.rest * 0.55, center.z), front = i <= 2 }
   end
 
   local pivots = {}
@@ -136,18 +130,6 @@ local function teleport(c, r)
   c.rb.velocity, c.rb.angularVelocity = Vector3.zero, Vector3.zero
 end
 
-local function set_driver_visible(r, on)
-  if on then
-    for _, rend in ipairs(car.hidden or {}) do if alive(rend) then rend.enabled = true end end
-    car.hidden = nil
-  else
-    car.hidden = {}
-    for _, rend in ipairs(children(r, "Renderer")) do
-      if rend.enabled then rend.enabled = false; table.insert(car.hidden, rend) end
-    end
-  end
-end
-
 local function enter(c, r)
   if c.driver then exit_car(c) end
   body.ignore(r, c.cols, true)
@@ -155,8 +137,7 @@ local function enter(c, r)
   game.set_driver(r, c.rb)
   c.kseat:Sit(r, c.rb.velocity)
   once("door", 0.8)
-  if c.damage < 1 then once("engine_start", 0.9) end
-  if not show_driver.value then set_driver_visible(r, false) end
+  once("engine_start", 0.9)
   if game.is_local(r) then camera.target(c.cam) end
 end
 
@@ -167,7 +148,6 @@ function exit_car(c)
   c.kseat:Stand(c.rb.velocity + Vector3.up * c.s * 6 + c.go.transform.right * c.s * 3)
   game.set_driver(nil, nil)
   if not alive(r) then return end
-  set_driver_visible(r, true)
   if game.is_local(r) then camera.target(nil) end
   game.unground(r, true)
   after(0.8, function() if alive(r) and c.driver ~= r then body.ignore(r, c.cols, false) end end)
@@ -182,15 +162,6 @@ local function flip(c)
   c.rb.velocity = c.rb.velocity * 0.3
 end
 
-local function repair(c, silent)
-  c.damage, c.glass_broken = 0, false
-  fx.undent(c.body.transform)
-  if alive(c.smoke) then destroy(c.smoke.gameObject) end
-  if alive(c.fire) then destroy(c.fire.gameObject) end
-  c.smoke, c.fire = nil, nil
-  if not silent then toast("Car repaired") end
-end
-
 -- crashes
 
 local function sparks(c, point, normal, str)
@@ -201,51 +172,6 @@ local function sparks(c, point, normal, str)
     color = { rgb(1, 0.9, 0.4), rgb(1, 0.5, 0.1) }, gravity = 0.5, angle = 70, radius = s * 0.05, material = fx_mat, stretch = 0.03, length = 2 })
   fx.emit(ps, math.floor(20 + 70 * str))
   destroy(go, 1)
-end
-
-local function debris(c, point, rel, str, glass)
-  local n = math.floor(str * 5 + 0.5) + (glass and 14 or 0)
-  local body_col = paints[paint.value] or rgb(0.1, 0.22, 0.6)
-  for i = 1, n do
-    local shard = glass and i > n - 14
-    local go = primitive("Cube", nil, true)
-    go.name = "CarDebris"
-    local sz = shard and c.s * rand(0.03, 0.08) or c.s * rand(0.08, 0.2)
-    go.transform.position = point + Random.insideUnitSphere * c.s * 0.3
-    go.transform.rotation = Random.rotation
-    go.transform.localScale = shard and vec(sz, sz * 0.15, sz * 0.8) or vec(sz, sz * 0.3, sz * 1.4)
-    go:GetComponent("Renderer").sharedMaterial = shard and mat.unlit(nil, rgb(0.7, 0.85, 0.95, 0.6)) or mat.solid(math.random() < 0.5 and body_col or rgb(0.05, 0.05, 0.05), 0.5)
-    local rbd = add(go, "Rigidbody")
-    rbd.mass = 0.2
-    rbd.velocity = c.rb.velocity * 0.6 - rel * 0.15 + Random.onUnitSphere * c.s * 3 + Vector3.up * c.s * 2
-    rbd.angularVelocity = Random.insideUnitSphere * 25
-    for _, cc in ipairs(c.cols) do physics.ignore(go:GetComponent("Collider"), cc) end
-    destroy(go, shard and 6 or 15)
-  end
-end
-
-local function smoke(c, fire)
-  local go = new_object(fire and "CarFire" or "CarSmoke", c.go.transform)
-  go.transform.localPosition = vec(0, c.H * 1.2, c.L * 0.36)
-  go.transform.localRotation = euler(-90, 0, 0)
-  local s = c.s
-  return fx.particles(go, fire and {
-    loop = true, lifetime = { 0.3, 0.7 }, speed = { s * 0.8, s * 2 }, size = { s * 0.3, s * 0.7 }, color = { rgb(1, 0.6, 0.1, 0.9), rgb(1, 0.25, 0.05, 0.8) },
-    gravity = -0.05, max = 300, rate = 45, angle = 15, radius = s * 0.25, grow = { 1, 0.2 }, fade = true, material = fx_mat,
-  } or {
-    loop = true, lifetime = { 1.5, 3 }, speed = { s * 0.5, s * 1.2 }, size = { s * 0.4, s * 0.9 }, color = rgb(0.7, 0.7, 0.7, 0.5),
-    gravity = -0.02, max = 300, rate = 8, angle = 15, radius = s * 0.25, grow = { 0.6, 2.5 }, fade = true, material = fx_mat,
-  })
-end
-
-local function update_damage_fx(c)
-  if c.damage >= 0.35 and not alive(c.smoke) then c.smoke = smoke(c, false) end
-  if c.damage >= 1 and not alive(c.fire) then c.fire = smoke(c, true); toast("Engine destroyed. Repair the car in the F1 menu.") end
-  if alive(c.smoke) then
-    local t = Mathf.InverseLerp(0.35, 1, c.damage)
-    fx.rate(c.smoke, Mathf.Lerp(6, 40, t))
-    fx.tint(c.smoke, Color.Lerp(rgb(0.75, 0.75, 0.75, 0.5), rgb(0.08, 0.08, 0.08, 0.8), t))
-  end
 end
 
 function car_hit(c, col)
@@ -263,35 +189,17 @@ function car_hit(c, col)
     if game.is_local(victim) then camera.shake(1, 2) end
     return
   end
-  if not crashes.value or col.collider.name:find("^Gib") or col.collider.name == "CarDebris" then return end
+  if col.collider.name:find("^Gib") then return end
   local contact = col:GetContact(0)
   local impact = math.abs(Vector3.Dot(col.relativeVelocity, contact.normal))
   local terrain = col.gameObject.layer == LayerMask.NameToLayer("Ground")
-  if impact < (terrain and 110 or 45) or Time.time - c.last_crash < 0.12 then return end
-  c.last_crash = Time.time
+  if impact < (terrain and 110 or 45) or Time.time - c.last_hit < 0.12 then return end
+  c.last_hit = Time.time
   local str = Mathf.Clamp01((impact - 45) / 220)
-  local glass = not c.glass_broken and impact > 120
-  if glass then c.glass_broken = true end
-
   local crunches = { sounds.crunch1, sounds.crunch2, sounds.crunch3 }
   audio.play(c.voice, crunches[randi(1, 4)], Mathf.Lerp(0.35, 1, str) * volume.value, rand(0.85, 1.1))
-  if glass then audio.play(c.voice, randi(1, 3) == 1 and sounds.glass1 or sounds.glass2, 0.7 * volume.value) end
   sparks(c, contact.point, contact.normal, str)
-  debris(c, contact.point, col.relativeVelocity, str, glass)
-  local into = col.relativeVelocity.sqrMagnitude > 1 and col.relativeVelocity.normalized or -contact.normal
-  fx.dent(c.body.transform, contact.point, into, c.s * (0.6 + 1.3 * str), c.s * (0.06 + 0.4 * str) * damage_mul.value)
-  c.damage = math.min(1.2, c.damage + impact / 750 * damage_mul.value)
-  update_damage_fx(c)
   if c.driver and game.is_local(c.driver) then camera.shake(0.4 + str * 1.6, 2.5) end
-
-  if c.driver and eject.value and impact > eject_speed.value then
-    local d, vel = c.driver, c.prev_vel
-    exit_car(c)
-    for _, p in ipairs(body.parts(d)) do
-      if body.live(p) then p.rigidBody.velocity = vel * 0.9 + Vector3.up * vel.magnitude * 0.25 + Random.insideUnitSphere * 8 end
-    end
-    toast("Ejected!")
-  end
 end
 
 function car_touch(c, col)
@@ -326,7 +234,6 @@ local function reset_car()
     car.rb.rotation = Quaternion.LookRotation(f.normalized, Vector3.up)
     car.rb.velocity, car.rb.angularVelocity = Vector3.zero, Vector3.zero
   end
-  repair(car, true)
   if d then enter(car, d) end
   toast("Car reset")
 end
@@ -340,7 +247,6 @@ end
 
 menu.button("Drive / exit", toggle_drive)
 menu.button("Reset", reset_car)
-menu.button("Repair", function() if car then repair(car) end end)
 menu.button("New car", function() despawn(); local me = game.player(); if me then teleport(build(me), me) end end)
 menu.button("Despawn", despawn)
 
@@ -357,7 +263,7 @@ function update(dt)
   local c = car
   if not c or not alive(c.go) then return end
   if c.driver and game.is_local(c.driver) and flip_key.down then flip(c) end
-  for _, l in ipairs(c.lights) do l.enabled = c.driver ~= nil and c.damage < 1 end
+  for _, l in ipairs(c.lights) do l.enabled = c.driver ~= nil end
 
   local spd = math.abs(Vector3.Dot(c.rb.velocity, c.go.transform.forward))
   local x = Mathf.Clamp01(spd / (top_speed.value * 1.25)) * 6
@@ -366,7 +272,7 @@ function update(dt)
   local shifted = gear > c.last_gear and c.throttle > 0.5
   c.last_gear = gear
   local vv = v()
-  if c.driver and c.damage < 1 then
+  if c.driver then
     local load = Mathf.Lerp(0.55, 1, c.throttle)
     c.low.pitch, c.high.pitch = Mathf.Lerp(0.7, 1.25, rpm), Mathf.Lerp(0.38, 0.8, rpm)
     c.low.volume = Mathf.Clamp01(1 - (rpm - 0.15) / 0.35) * load * vv
@@ -404,7 +310,6 @@ function fixed_update(dt)
   local c = car
   if not c or not alive(c.go) then return end
   local rb, tr = c.rb, c.go.transform
-  c.prev_vel = rb.velocity
   if c.driver and not alive(c.driver) then c.driver = nil; game.set_driver(nil, nil) end
 
   local throttle, steer, brake, nitro = 0, 0, false, false
@@ -417,7 +322,6 @@ function fixed_update(dt)
     nitro = input.key("leftShift") or input.key("rightShift")
   end
   if c.driver and test then throttle, steer, nitro, brake = test[1], test[2], test[3], test[4] end
-  if c.damage >= 1 and throttle > 0 then throttle = 0 end
   c.steer = Mathf.MoveTowards(c.steer, steer, dt * 5)
   c.throttle = Mathf.MoveTowards(c.throttle, math.abs(throttle), dt * 4)
 
@@ -433,7 +337,8 @@ function fixed_update(dt)
     local origin = tr:TransformPoint(w.rest_pos)
     local hit = physics.raycast(origin, -up, c.rest + c.R, physics.ground, rb, true)
     local len = hit and Mathf.Clamp(hit.distance - c.R, 0, c.rest) or c.rest
-    w.pivot.localPosition = w.rest_pos + Vector3.down * len
+    local lift = Mathf.Clamp(c.rest * 0.55 - len, -c.rest * 0.45, c.R * 0.12)
+    w.pivot.localPosition = w.center + Vector3.up * lift
     if hit then
       grounded = grounded + 1
       normal_sum = normal_sum + hit.normal
@@ -480,7 +385,7 @@ function fixed_update(dt)
     local f = Vector3.ProjectOnPlane(fwd, gn).normalized
     local share = grounded / 4
     local frac = Mathf.Clamp01(math.abs(speed_fwd) / top0)
-    local accel = 0.9 * g * power.value * (nitro and nitro_power.value or 1) * (c.damage >= 0.8 and 0.5 or 1) * Mathf.Lerp(1.35, 0.65, frac)
+    local accel = 0.9 * g * power.value * (nitro and nitro_power.value or 1) * Mathf.Lerp(1.35, 0.65, frac)
     local top = top_speed.value * (nitro and 1.5 or 1)
     if throttle > 0 and speed_fwd < top then rb:AddForce(f * accel * throttle * M * share)
     elseif throttle < 0 then
@@ -502,7 +407,6 @@ end
 function draw()
   local c = car
   if not c or not c.driver or not game.is_local(c.driver) then return end
-  local dmg = c.damage > 0.05 and string.format("   ·   damage %d%%", math.floor(c.damage * 100)) or ""
-  ui.hud(string.format("%d u/s%s", math.floor(c.rb.velocity.magnitude), dmg),
+  ui.hud(string.format("%d km/h", math.floor(c.rb.velocity.magnitude * 0.36)),
     string.format("WASD drive · Space brake · Shift nitro · H horn · %s flip · %s reset · %s exit", flip_key.label, reset_key.label, enter_key.label))
 end
