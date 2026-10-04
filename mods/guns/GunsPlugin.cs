@@ -10,7 +10,7 @@ using UnityEngine.InputSystem;
 
 namespace Modz
 {
-    [BepInPlugin(GUID, "Guns", "2.1.1")]
+    [BepInPlugin(GUID, "Guns", "2.1.2")]
     [BepInDependency(CorePlugin.GUID)]
     public class GunsPlugin : BaseUnityPlugin
     {
@@ -694,7 +694,7 @@ namespace Modz
             if (shoulderBlend > 0f && me)
             {
                 float sc = ModCommon.BodyScale(me);
-                shoulderShift = (cam.transform.right * 0.3f + cam.transform.up * 0.08f) * sc * shoulderBlend;
+                shoulderShift = (cam.transform.right * 0.5f + cam.transform.up * 0.22f) * sc * shoulderBlend;
                 cam.transform.position += shoulderShift;
             }
             if (g && g.GunOut) cam.fieldOfView *= Mathf.Lerp(1f, g.AimZoom.Value, g.aimBlend);

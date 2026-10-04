@@ -1,7 +1,7 @@
 {
   "id": "guns",
   "name": "Guns",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "author": "Modz",
   "description": "Glock 17 (1) and AK-47 (2): recoil, aim down sights, reloads, bullet wounds with Gore.",
   "dependencies": [
