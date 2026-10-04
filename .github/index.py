@@ -13,6 +13,10 @@ for manifest in sorted(root.glob("mods/*/mod.json")):
     for key in ("id", "name", "version", "author", "description"):
         if not isinstance(mod.get(key), str) or not mod[key]:
             errors.append(f"{folder.name}/mod.json: missing \"{key}\"")
+    if not re.fullmatch(r"[a-z0-9]+(-[a-z0-9]+)*", folder.name):
+        errors.append(f"{folder.name}: folder name must be lowercase letters, digits and dashes")
+    if len(mod.get("description", "")) > 120:
+        errors.append(f"{folder.name}/mod.json: description is longer than 120 characters")
     if mod.get("id") != folder.name:
         errors.append(f"{folder.name}/mod.json: id must be \"{folder.name}\"")
     if not re.fullmatch(r"\d+\.\d+\.\d+", mod.get("version", "")):
@@ -21,6 +25,11 @@ for manifest in sorted(root.glob("mods/*/mod.json")):
         errors.append(f"{folder.name}: no main.lua")
     scripts = sorted(folder.glob("*.lua"))
     assets = sorted(p for p in (folder / "files").rglob("*") if p.is_file() and p.name != ".DS_Store")
+    for p in assets:
+        if p.suffix.lower() not in (".glb", ".wav"):
+            errors.append(f"{p.relative_to(root)}: only .glb and .wav files are allowed")
+    if sum(p.stat().st_size for p in scripts + assets) > 15 * 1024 * 1024:
+        errors.append(f"{folder.name}: larger than 15 MB")
     mod.setdefault("dependencies", [])
     mod["files"] = [{
         "path": p.relative_to(root).as_posix(),
