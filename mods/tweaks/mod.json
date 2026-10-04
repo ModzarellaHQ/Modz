@@ -1,8 +1,0 @@
-{
-  "id": "tweaks",
-  "name": "Game Tweaks",
-  "version": "2.2.0",
-  "author": "Modz",
-  "description": "Endless round (F2), freeze bots (F4), slow motion (F5), VSync and FPS cap.",
-  "dependencies": []
-}
