@@ -1,25 +1,19 @@
-local S = "Gore"
-local blood_amount = setting.number{ section = S, name = "Blood amount", default = 3, min = 0, max = 8, desc = "How much blood everything sprays." }
-local lethal_you = setting.toggle{ section = S, name = "You can die", default = true, desc = "Bleeding out, decapitation or being torn apart kills you (Enter = next round)." }
-local lethal_bots = setting.toggle{ section = S, name = "Bots can die", default = true, desc = "Bots die from the same things and go limp." }
-local gore_you = setting.toggle{ section = S, name = "Gore on you", default = true, desc = "Your own limbs can come off." }
-local gore_bots = setting.toggle{ section = S, name = "Gore on bots", default = true, desc = "Bots' limbs can come off." }
-local screen_blood = setting.toggle{ section = S, name = "Screen blood", default = true, desc = "Blood splatters on the screen when gore happens close to the camera." }
-local volume = setting.number{ section = S, name = "Gore volume", default = 0.8, min = 0, max = 1, desc = "Squelches, cracks and splats." }
-local bleed_impact = setting.number{ section = S, name = "Bleed impact", default = 75, min = 20, max = 500, desc = "Impact speed at which a limb starts bleeding.", advanced = true }
-local sever_impact = setting.number{ section = S, name = "Sever impact", default = 150, min = 30, max = 800, desc = "Single impact speed that tears a limb off.", advanced = true }
-local bleed_out = setting.number{ section = S, name = "Blood until death", default = 30, min = 3, max = 100, desc = "Blood a body holds before dying (a stump loses about 1 per second).", advanced = true }
-local stump_seconds = setting.number{ section = S, name = "Stump bleed seconds", default = 25, min = 1, max = 60, desc = "How long a stump spurts.", advanced = true }
-local accumulate = setting.toggle{ section = S, name = "Damage accumulates", default = true, desc = "Repeated hits eventually tear the limb off too.", advanced = true }
-local allow_head = setting.toggle{ section = S, name = "Decapitation", default = true, desc = "The head can come off.", advanced = true }
-local allow_upper = setting.toggle{ section = S, name = "Whole limbs", default = true, desc = "Upper arms and legs can come off, taking everything below.", advanced = true }
-local overkill = setting.toggle{ section = S, name = "Overkill", default = true, desc = "Extreme impacts rip off extra limbs, burst heads and can explode bodies.", advanced = true }
-local torso_tear = setting.toggle{ section = S, name = "Tear in half", default = true, desc = "Colossal impacts rip the upper body off the hips.", advanced = true }
-local car_gore = setting.toggle{ section = S, name = "Car gore", default = true, desc = "Cars crush limbs, get splattered and leave bloody tyre tracks.", advanced = true }
-local bloody_bodies = setting.toggle{ section = S, name = "Bloody bodies", default = true, desc = "Bodies get stained red and show wounds.", advanced = true }
-local gib_life = setting.number{ section = S, name = "Severed limb lifetime", default = 45, min = 5, max = 300, desc = "Seconds before a lost limb despawns.", advanced = true }
+local S = "Euphoria"
+local strength = setting.number{ section = S, name = "Muscle strength", default = 1, min = 0.2, max = 3, desc = "How hard bodies fight to stay up and protect themselves." }
+local blood_amount = setting.number{ section = S, name = "Blood", default = 3, min = 0, max = 8, desc = "How much blood everything sprays. 0 turns blood off." }
+local dismember = setting.toggle{ section = S, name = "Limbs come off", default = true, desc = "Hard hits tear limbs off." }
+local deaths = setting.toggle{ section = S, name = "Deaths", default = true, desc = "Bodies can bleed out or be killed. When you die, Enter starts the next round." }
+local on_you = setting.toggle{ section = S, name = "Affects you", default = true, desc = "Your own body reacts and gets hurt too." }
+local screen_blood = setting.toggle{ section = S, name = "Blood on screen", default = true, desc = "Blood splashes on the screen when it happens right next to the camera." }
+local volume = setting.number{ section = S, name = "Volume", default = 0.8, min = 0, max = 1, desc = "Squelches, cracks and splats." }
+local toughness = setting.number{ section = S, name = "Toughness", default = 1, min = 0.3, max = 3, desc = "Higher means bodies take harder hits before bleeding or losing limbs.", advanced = true }
 
-local euphoria = require("euphoria")
+local BLEED_OUT, STUMP_SECONDS, GIB_LIFE = 30, 25, 45
+local function bleed_impact() return 75 * toughness.value end
+local function sever_impact() return 150 * toughness.value end
+
+local euphoria = require("reactions")
+euphoria.strength, euphoria.on_you = strength, on_you
 local sounds = audio.folder("sounds")
 
 local blood_mat = mat.unlit(mat.blob(32, 0, 5))
@@ -139,7 +133,7 @@ end
 local function lose_blood(g, amount)
   if g.dead then return end
   g.lost = g.lost + amount
-  if g.lost >= bleed_out.value then g.die("bled out") end
+  if g.lost >= BLEED_OUT then g.die("bled out") end
 end
 
 local function state(r)
@@ -151,7 +145,7 @@ local function state(r)
 
   function g.die(why)
     if g.dead or not alive(r) then return end
-    if game.is_local(r) and not lethal_you.value or not game.is_local(r) and not lethal_bots.value then return end
+    if not deaths.value then return end
     g.reason = why
     if game.seated(r) then return end
     g.dead = true
@@ -161,7 +155,6 @@ local function state(r)
   end
 
   function g.stain_body(add)
-    if not bloody_bodies.value then return end
     if not g.mats then
       g.mats = {}
       for _, rend in ipairs(children(r, "SkinnedMeshRenderer")) do
@@ -179,7 +172,6 @@ local function state(r)
   end
 
   function g.wound(part, point, dir)
-    if not bloody_bodies.value then return end
     local sc = game.scale(r)
     local out = point - part.transform.position
     out = out.sqrMagnitude > 1e-4 and out.normalized or -dir.normalized
@@ -203,37 +195,34 @@ local function state(r)
 end
 
 local function severable(r, p)
-  if p == r.spine1 or p == r.spine2 then return false end
-  if p == r.head then return allow_head.value end
-  if p == r.upperArmLeft or p == r.upperArmRight or p == r.upperLegLeft or p == r.upperLegRight then return allow_upper.value end
-  return true
+  return dismember.value and p ~= r.spine1 and p ~= r.spine2
 end
 
 local function hit(g, part, impact, point, rel)
   local r = g.r
   if g.severed[part:GetInstanceID()] then return end
-  local bleed, sever = bleed_impact.value, math.max(sever_impact.value, bleed_impact.value + 1)
+  local bleed, sever = bleed_impact(), math.max(sever_impact(), bleed_impact() + 1)
   local dmg = (impact - bleed) / (sever - bleed) * 0.8
   local id = part:GetInstanceID()
-  local total = accumulate.value and (g.damage[id] or 0) + dmg or math.max(g.damage[id] or 0, dmg)
+  local total = (g.damage[id] or 0) + dmg
   g.damage[id] = total
 
-  if overkill.value and impact >= sever * 3 then table.insert(explodes, { g = g, at = point, vel = rel }) return end
+  if dismember.value and impact >= sever * 3 then table.insert(explodes, { g = g, at = point, vel = rel }) return end
   burst(point, -rel.normalized, game.scale(r), Mathf.Clamp(0.5 + dmg * 1.5, 0.5, 3))
   if dmg > 0.3 then g.wound(part, point, rel) end
-  lose_blood(g, Mathf.Clamp(dmg, 0, 2) * bleed_out.value * 0.04)
+  lose_blood(g, Mathf.Clamp(dmg, 0, 2) * BLEED_OUT * 0.04)
   g.stain_body(0.04 + dmg * 0.12)
   sound(dmg > 0.5 and "crack" or "splat", point, Mathf.Clamp(0.3 + dmg, 0.3, 1))
   g.bleed(part, Mathf.Clamp(2 + dmg * 4, 2, 7), Mathf.Clamp01(0.3 + dmg))
 
   if Time.time - g.last_sever < 0.12 then return end
-  if part == r.spine2 and torso_tear.value and impact >= sever * 2.2 then
+  if part == r.spine2 and dismember.value and impact >= sever * 2.2 then
     g.last_sever = Time.time
     table.insert(severs, { g = g, part = part, vel = rel })
   elseif severable(r, part) and (impact >= sever or total >= 1) then
     g.last_sever = Time.time
     table.insert(severs, { g = g, part = part, vel = rel })
-    if overkill.value and impact >= sever * 1.6 then
+    if impact >= sever * 1.6 then
       if part == r.head then g.head_burst = true end
       local pool = {}
       for _, p in ipairs(body.parts(r)) do
@@ -247,7 +236,7 @@ end
 local function squish(gib, scale, big)
   local born = Time.time
   physics.on_hit(gib, function(c)
-    if Time.time - born < 0.3 or not car_gore.value or not game.is_vehicle(c.rigidbody) or c.relativeVelocity.magnitude < 35 then return end
+    if Time.time - born < 0.3 or not game.is_vehicle(c.rigidbody) or c.relativeVelocity.magnitude < 35 then return end
     local p = c.contactCount > 0 and c:GetContact(0).point or gib.transform.position
     burst(p, Vector3.up, scale, big and 3 or 1.2)
     splatter_car(c.rigidbody, p, scale)
@@ -277,8 +266,8 @@ local function do_sever(g, part, rel)
       rb.velocity = vel + (Random.onUnitSphere + Vector3.up).normalized * scale * 2.5
       rb.angularVelocity = spin + Random.insideUnitSphere * 12
       squish(gib, scale, true)
-      refresh(attach_bleeder(gib.transform, at, scale * 0.7, true, nil, rb), stump_seconds.value * 0.5, 0.5)
-      destroy(gib, gib_life.value)
+      refresh(attach_bleeder(gib.transform, at, scale * 0.7, true, nil, rb), STUMP_SECONDS * 0.5, 0.5)
+      destroy(gib, GIB_LIFE)
     end
   end
 
@@ -300,10 +289,10 @@ local function do_sever(g, part, rel)
   sound("squelch", at, 1)
   sound("crack", at, 0.8)
   g.stain_body(0.2)
-  lose_blood(g, bleed_out.value * (part == r.head and 1 or 0.18))
+  lose_blood(g, BLEED_OUT * (part == r.head and 1 or 0.18))
   if part == r.head then g.die("decapitated") end
   if part == r.spine2 then g.die("torn in half") end
-  refresh(attach_bleeder(parent.transform, at, scale, true, g, parent.rigidBody), stump_seconds.value, 1)
+  refresh(attach_bleeder(parent.transform, at, scale, true, g, parent.rigidBody), STUMP_SECONDS, 1)
   burst(at, Random.onUnitSphere, scale, 3.5)
   log((game.is_local(r) and "You" or r.name) .. " lost " .. body.name(r, part))
   if game.is_local(r) then camera.shake(1.2, 2) end
@@ -325,8 +314,7 @@ local function explode(g, at, vel)
 end
 
 local function allowed(r)
-  if game.is_local(r) then return gore_you.value end
-  return gore_bots.value
+  return not game.is_local(r) or on_you.value
 end
 
 -- events
@@ -341,9 +329,9 @@ events.on("bullet_hit", function(part, point, dir, power)
   burst(point + dir * sc * 0.15, dir, sc, 0.7 + power / 400)
   g.wound(part, point, dir)
   g.bleed(part, 30, 0.9)
-  lose_blood(g, bleed_out.value * (part == r.head and 0.5 or (part == r.spine1 or part == r.spine2) and 0.14 or 0.06))
+  lose_blood(g, BLEED_OUT * (part == r.head and 0.5 or (part == r.spine1 or part == r.spine2) and 0.14 or 0.06))
   sound("splat", point, 0.8)
-  if part == r.head and power > 120 then
+  if part == r.head and power > 120 and dismember.value then
     g.head_burst = true
     table.insert(severs, { g = g, part = part, vel = dir * power })
     return
@@ -353,7 +341,7 @@ end)
 
 local function force_hit(part, impact, point, dir)
   local r = part.ragdoll
-  if not allowed(r) or impact < bleed_impact.value then return end
+  if not allowed(r) or impact < bleed_impact() then return end
   hit(state(r), part, impact, point, dir)
 end
 
@@ -369,64 +357,60 @@ function on_part_hit(part, c)
   local impact = math.abs(Vector3.Dot(c.relativeVelocity, contact.normal))
   local extremity = part == r.footLeft or part == r.footRight or part == r.handLeft or part == r.handRight or part == r.lowerLegLeft or part == r.lowerLegRight
   if extremity and not car then impact = impact / 1.6 end
-  if impact < bleed_impact.value then return end
-  if car and car_gore.value then
+  if impact < bleed_impact() then return end
+  if car then
     impact = impact * 1.4
     splatter_car(c.rigidbody, contact.point, game.scale(r))
   end
   hit(state(r), part, impact, contact.point, c.relativeVelocity)
 end
 
--- car tyres
+-- vehicles
 
-local car, wheels, wet, last_track, crushed, next_find = nil, {}, { 0, 0, 0, 0 }, {}, {}, 0
+local wet, last_track, crushed = {}, {}, {}
 
 events.on("wheels_bloody", function(rb, near)
-  for i, w in ipairs(wheels) do
-    if alive(w) and Vector3.Distance(w.position, near) < game.scale(nil) * 2.5 then wet[i] = 1 end
+  for _, v in ipairs(game.vehicles()) do
+    for _, w in ipairs(v.wheels) do
+      if Vector3.Distance(w.position, near) < game.scale(nil) * 2.5 then wet[w:GetInstanceID()] = 1 end
+    end
   end
 end)
 
 local function tyres()
-  if not car_gore.value then return end
-  if Time.time > next_find then
-    next_find = Time.time + 1
-    local go = find("BMW")
-    car = go and get(go, "Rigidbody")
-    wheels = {}
-    if car then for i = 0, 3 do wheels[i + 1] = car.transform:Find("wheel" .. i) end end
-  end
-  if not alive(car) then return end
   local scale = game.scale(nil)
-  local speed = car.velocity.magnitude
   local driver = game.driver()
-  for i, w in ipairs(wheels) do
-    if alive(w) then
-      local ground = physics.raycast(w.position, -car.transform.up, scale * 2, physics.ground)
+  for _, v in ipairs(game.vehicles()) do
+    local rb = v.body
+    local speed = rb.velocity.magnitude
+    for _, w in ipairs(v.wheels) do
+      local id = w:GetInstanceID()
+      local ground = physics.raycast(w.position, -rb.transform.up, scale * 2, physics.ground)
       if ground then
         if speed > 20 then
           for _, col in ipairs(physics.overlap(ground.point + ground.normal * scale * 0.25, scale * 0.35)) do
             local part = physics.part(col)
             if part and part.ragdoll and part.ragdoll ~= driver then
-              local id = part:GetInstanceID()
-              if not crushed[id] or Time.time > crushed[id] then
-                crushed[id] = Time.time + 0.35
-                force_hit(part, speed * 1.6 + 60, ground.point, car.velocity)
-                if body.live(part) then part.rigidBody:AddForce(car.velocity * 0.3 + ground.normal * speed * 0.2, ForceMode.VelocityChange) end
-                wet[i] = 1
+              local pid = part:GetInstanceID()
+              if not crushed[pid] or Time.time > crushed[pid] then
+                crushed[pid] = Time.time + 0.35
+                force_hit(part, speed * 1.6 + 60, ground.point, rb.velocity)
+                if body.live(part) then part.rigidBody:AddForce(rb.velocity * 0.3 + ground.normal * speed * 0.2, ForceMode.VelocityChange) end
+                wet[id] = 1
               end
             end
           end
         end
         local step = scale * 0.7
-        if wet[i] > 0.02 and speed > 6 then
-          if not last_track[i] or (ground.point - last_track[i]).sqrMagnitude > step * step then
-            fx.decal("BloodTrack", 200, ground.point, ground.normal, car.velocity, scale * 0.32, step * 1.15, track_mats[Mathf.Clamp(math.floor(wet[i] * 4), 0, 3) + 1])
-            last_track[i] = ground.point
-            wet[i] = wet[i] - 0.035
+        local wetness = wet[id] or 0
+        if wetness > 0.02 and speed > 6 then
+          if not last_track[id] or (ground.point - last_track[id]).sqrMagnitude > step * step then
+            fx.decal("BloodTrack", 200, ground.point, ground.normal, rb.velocity, scale * 0.32, step * 1.15, track_mats[Mathf.Clamp(math.floor(wetness * 4), 0, 3) + 1])
+            last_track[id] = ground.point
+            wet[id] = wetness - 0.035
           end
         else
-          last_track[i] = ground.point
+          last_track[id] = ground.point
         end
       end
     end
@@ -436,7 +420,7 @@ end
 -- callbacks
 
 function on_round_start()
-  states, bleeders, splats, severs, explodes, crushed = {}, {}, {}, {}, {}, {}
+  states, bleeders, splats, severs, explodes, crushed, wet, last_track = {}, {}, {}, {}, {}, {}, {}, {}
   heart = nil
   euphoria.reset()
 end
@@ -498,14 +482,14 @@ function update(dt)
   local me = game.player()
   local g = me and states[me:GetInstanceID()]
   if not alive(heart) then heart = audio.source(new_object("Heartbeat"), { clip = sounds.heartbeat, loop = true, spatial = 0, volume = 0 }) end
-  local lost = g and Mathf.Clamp01(g.lost / bleed_out.value) or 0
+  local lost = g and Mathf.Clamp01(g.lost / BLEED_OUT) or 0
   heart.volume = (g and not g.dead and lost > 0.35) and Mathf.InverseLerp(0.35, 1, lost) * volume.value * audio.sfx() * 1.5 or 0
   heart.pitch = 0.9 + lost * 0.7
   if g and g.dead and input.key_down("enter") then game.next_round() end
 
   for _, s in pairs(states) do
     if alive(s.r) and not s.dead and not game.is_local(s.r) then
-      local f = s.lost / bleed_out.value
+      local f = s.lost / BLEED_OUT
       if f > 0.5 and math.random() < dt * f * 0.8 then game.unground(s.r, true) end
     end
   end
@@ -524,7 +508,7 @@ function draw()
   local me = game.player()
   local g = me and states[me:GetInstanceID()]
   if not g then return end
-  local lost = Mathf.Clamp01(g.lost / bleed_out.value)
+  local lost = Mathf.Clamp01(g.lost / BLEED_OUT)
   local w, h = ui.width(), ui.height()
   if lost > 0.05 or g.dead then
     local pulse = lost > 0.5 and 0.1 * math.max(0, math.sin(Time.time * (4 + lost * 6))) or 0

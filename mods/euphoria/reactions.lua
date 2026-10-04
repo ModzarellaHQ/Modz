@@ -1,17 +1,13 @@
 local M = {}
 
-local S = "Euphoria"
-local strength = setting.number{ section = S, name = "Muscle strength", default = 1, min = 0.2, max = 3, desc = "How hard the ragdolls fight." }
-local on_you = setting.toggle{ section = S, name = "On you", default = true, desc = "Your own ragdoll reacts too." }
-local on_bots = setting.toggle{ section = S, name = "On bots", default = true, desc = "Bots react." }
-local throes = setting.number{ section = S, name = "Death throes (s)", default = 2.5, min = 0, max = 8, desc = "How long a dying body keeps twitching.", advanced = true }
+local THROES = 2.5
 
 local brains = {}
 local hold, step = 0, 0
 
 local function align(a, b, dir, k, d) body.align(a, b, dir, k, d, hold) end
 local function reach(hand, lower, upper, target, k, d) body.reach(hand, lower, upper, target, k, d, hold) end
-local car
+local vehicles = {}
 
 local function brain(r)
   local id = r:GetInstanceID()
@@ -52,18 +48,23 @@ local function both_hands(r, left, right, k, d)
 end
 
 local function car_incoming(r, k, d, sc)
-  if not alive(car) or game.seated(r) then return end
-  local to = r:GetRootPosition() - car.position
-  local closing = Vector3.Dot(car.velocity, to.normalized)
-  if closing < 50 or to.magnitude > closing * 0.8 then return end
-  local face = r.head.transform.position + (car.position - r.head.transform.position).normalized * sc * 0.4
-  both_hands(r, face - Vector3.up * sc * 0.05, face + Vector3.up * sc * 0.05, k * 1.4, d)
+  if game.seated(r) then return end
+  for _, v in ipairs(vehicles) do
+    local car = v.body
+    local to = r:GetRootPosition() - car.position
+    local closing = Vector3.Dot(car.velocity, to.normalized)
+    if closing > 50 and to.magnitude < closing * 0.8 then
+      local face = r.head.transform.position + (car.position - r.head.transform.position).normalized * sc * 0.4
+      both_hands(r, face - Vector3.up * sc * 0.05, face + Vector3.up * sc * 0.05, k * 1.4, d)
+      return
+    end
+  end
 end
 
 local function tick(r)
   if not body.live(r.spine1) or game.seated(r) then return end
   local b = brain(r)
-  local k, d = 240 * strength.value, 18
+  local k, d = 240 * M.strength.value, 18
   local sc = game.scale(r)
   local root = r.spine1.rigidBody
   local dead = body.dead(r)
@@ -73,8 +74,8 @@ local function tick(r)
   if dead then
     if b.death_time < 0 then b.death_time = Time.time end
     local t = Time.time - b.death_time
-    if t < throes.value then
-      local fade = 1 - t / throes.value
+    if t < THROES then
+      local fade = 1 - t / THROES
       for _, p in ipairs(body.parts(r)) do
         if math.random() < 0.06 * fade and body.live(p) then
           p.rigidBody:AddTorque(Random.insideUnitSphere * 25 * fade, ForceMode.VelocityChange)
@@ -135,7 +136,7 @@ local function tick(r)
     local fwd = r.spine2.transform.forward
     align(r.upperLegLeft, r.lowerLegLeft, fwd * (0.6 + 0.4 * math.sin(t)) - Vector3.up * 0.2, k * 0.4, d)
     align(r.upperLegRight, r.lowerLegRight, fwd * (0.6 - 0.4 * math.sin(t)) - Vector3.up * 0.2, k * 0.4, d)
-    root:AddTorque(r.spine2.transform.up * math.sin(t * 0.7) * 6 * strength.value, ForceMode.Acceleration)
+    root:AddTorque(r.spine2.transform.up * math.sin(t * 0.7) * 6 * M.strength.value, ForceMode.Acceleration)
     align(r.spine2, r.head, Vector3.up + fwd * 0.4, k * 0.3, d)
   elseif b.off_feet > 0.4 then
     local under = root.position + Vector3.down * sc * 0.6
@@ -151,19 +152,18 @@ function M.reset()
   brains = {}
 end
 
-local next_car_scan = 0
+local next_scan = 0
 
 function M.fixed_update()
-  if Time.time > next_car_scan then
-    next_car_scan = Time.time + 0.5
-    local go = find("BMW")
-    car = go and get(go, "Rigidbody")
+  if Time.time > next_scan then
+    next_scan = Time.time + 0.5
+    vehicles = game.vehicles()
   end
   step = step + 1
   hold = Time.fixedDeltaTime * 4.5
   for i, r in ipairs(game.ragdolls()) do
     local mine = game.is_local(r)
-    if (step + i) % 4 == 0 and ((mine and on_you.value) or (not mine and on_bots.value)) then tick(r) end
+    if (step + i) % 4 == 0 and (not mine or M.on_you.value) then tick(r) end
   end
 end
 
