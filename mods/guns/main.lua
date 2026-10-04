@@ -11,7 +11,7 @@ local reload_key = setting.key{ name = "Reload", default = "R", desc = "Reload."
 
 local sounds = audio.folder("sounds")
 
--- z runs from the back of the gun (0) to the muzzle (1); y from the bottom (0) to the top (1)
+-- points: z from stock (0) to muzzle (1), y from bottom (0) to top (1)
 local guns = {
   { name = "Glock 17", file = "glock.glb", flip = true, length = 2.3, mag = 17, rpm = 450, auto = false, power = 150,
     spread = 0.35, bloom = 0.9, kick = 3.2, reload = 1.5, shots = { sounds.pistol_shot1, sounds.pistol_shot2 }, reload_sound = sounds.pistol_reload,
