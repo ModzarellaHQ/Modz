@@ -7,6 +7,8 @@ local zoom = setting.number{ section = S, name = "Aim zoom", default = 0.7, min 
 local pistol_key = setting.key{ name = "Glock", default = "Alpha1", desc = "Draw the pistol." }
 local rifle_key = setting.key{ name = "AK-47", default = "Alpha2", desc = "Draw the rifle." }
 local holster_key = setting.key{ name = "Holster", default = "Alpha3", desc = "Put the gun away." }
+local m4_key = setting.key{ name = "M4A1", default = "Alpha4", desc = "Draw the carbine." }
+local launcher_key = setting.key{ name = "Panzerschreck", default = "Alpha5", desc = "Draw the rocket launcher." }
 local reload_key = setting.key{ name = "Reload", default = "R", desc = "Reload." }
 
 local sounds = audio.folder("sounds")
@@ -19,6 +21,12 @@ local guns = {
   { name = "AK-47", file = "ak47.glb", flip = false, length = 7.2, mag = 30, rpm = 600, auto = true, power = 200,
     spread = 0.25, bloom = 0.45, kick = 1.25, reload = 2.4, shots = { sounds.rifle_shot1, sounds.rifle_shot2, sounds.rifle_shot3 }, reload_sound = sounds.rifle_reload,
     grip = { 0.36, 0.25 }, support = { 0.6, 0.45 }, hip = { 0.13, -0.19, 0.5 }, ads = 0.4, stock = { 0.02, 0.62 }, sight = { 0.42, 0.95 }, muzzle = { 1, 0.72 }, eject = { 0.47, 0.75 }, key = rifle_key },
+  { name = "M4A1", file = "m4a1.glb", flip = false, length = 6.6, mag = 30, rpm = 800, auto = true, power = 185,
+    spread = 0.2, bloom = 0.35, kick = 1.0, reload = 2.2, shots = { sounds.rifle_shot1, sounds.rifle_shot2, sounds.rifle_shot3 }, pitch = 1.15, reload_sound = sounds.rifle_reload,
+    grip = { 0.38, 0.25 }, support = { 0.62, 0.4 }, hip = { 0.13, -0.19, 0.48 }, ads = 0.4, stock = { 0.02, 0.6 }, sight = { 0.45, 1.0 }, muzzle = { 1, 0.7 }, eject = { 0.48, 0.75 }, key = m4_key },
+  { name = "Panzerschreck", file = "panzerschreck.glb", flip = false, length = 7, mag = 1, rpm = 30, auto = false, power = 900,
+    spread = 0.1, bloom = 0, kick = 2.5, reload = 2.6, shots = { sounds.rocket_launch }, reload_sound = sounds.rifle_reload, launcher = true,
+    grip = { 0.45, 0.12 }, support = { 0.62, 0.12 }, hip = { 0.2, -0.13, 0.05 }, ads = 0.3, stock = { 0.36, 0.3 }, sight = { 0.5, 1.0 }, muzzle = { 1, 0.3 }, eject = { 0.1, 0.6 }, key = launcher_key },
 }
 
 local flash_mat = mat.unlit(mat.blob(32, 0.5, 61), rgb(1, 0.85, 0.5))
@@ -81,7 +89,9 @@ local function body_pose(me)
   local right = Vector3.Cross(Vector3.up, facing)
   local shoulder = me.upperArmRight.transform.position
   local anchor
-  if def.auto then
+  if def.launcher then
+    anchor = shoulder + Vector3.up * sc * 0.07 + right * sc * 0.02
+  elseif def.auto then
     anchor = shoulder + facing * sc * 0.06 + Vector3.up * sc * Mathf.Lerp(-0.02, 0.04, st.ads)
   else
     anchor = me.spine2.transform.position + facing * sc * Mathf.Lerp(0.5, 0.58, st.ads) + Vector3.up * sc * Mathf.Lerp(0.16, 0.3, st.ads) + right * sc * 0.03
@@ -91,7 +101,7 @@ local function body_pose(me)
     dir = (Vector3.RotateTowards(facing, Vector3.ProjectOnPlane(dir, Vector3.up).normalized, math.rad(50), 0) + Vector3.up * dir.y).normalized
   end
   local rot = Quaternion.LookRotation(dir, Vector3.up) * euler(-st.kick * (def.auto and 5 or 12), 0, 0)
-  local hold = def.auto and point(def, def.stock[1], def.stock[2]) or point(def, def.grip[1], def.grip[2])
+  local hold = (def.auto or def.launcher) and point(def, def.stock[1], def.stock[2]) or point(def, def.grip[1], def.grip[2])
   local pos = anchor - rot * hold - rot * Vector3.forward * st.kick * sc * 0.04
   if Time.time < st.reload_until then
     rot = rot * euler(35, 0, -25)
@@ -108,6 +118,12 @@ local function view_pose(me)
   local sight = point(def, def.sight[1], def.sight[2])
   local hip = cam.position + (cam.right * def.hip[1] + cam.up * def.hip[2] + cam.forward * def.hip[3]) * sc
   local ads = cam.position + cam.forward * sc * def.ads
+  if def.launcher then
+    local rest = point(def, def.stock[1], def.stock[2])
+    hip = cam.position + (cam.right * def.hip[1] + cam.up * def.hip[2] + cam.forward * def.hip[3]) * sc - cam.rotation * rest + cam.rotation * point(def, def.grip[1], def.grip[2])
+    ads = hip
+    sight = rest
+  end
   local rot = cam.rotation * euler(st.sway.y, st.sway.x, st.sway.x * 0.6) * euler(-st.kick * (def.auto and 3 or 7), 0, 0)
   local bob = math.sin(Time.time * 9) * Mathf.Clamp01(me.velocity.magnitude / 60) * sc * 0.006 * (1 - st.ads * 0.8)
   local pos
@@ -255,6 +271,85 @@ local function impact(h, sc, metal)
   end
 end
 
+local rockets = {}
+local rocket_mat = mat.solid(rgb(0.22, 0.25, 0.18), 0.3)
+local fire_mat = mat.unlit(mat.blob(32, 0.5, 64), rgb(1, 0.6, 0.2))
+local scorch_mat = mat.unlit(mat.blob(32, 0.9, 65), rgb(0.05, 0.04, 0.03, 0.85))
+
+local function explode(point, normal, sc, power, owner)
+  local radius = sc * 3.5
+  local go = new_object("Explosion")
+  go.transform.position = point
+  fx.emit(fx.particles(go, { duration = 0.2, lifetime = { 0.25, 0.6 }, speed = { sc * 2, sc * 9 }, size = { sc * 0.5, sc * 1.4 }, color = { rgb(1, 0.85, 0.4), rgb(1, 0.35, 0.1) }, angle = 90, material = fire_mat, grow = { 1, 2 }, fade = true }), 45)
+  fx.emit(fx.particles(new_object("Smoke", go.transform), { duration = 0.2, lifetime = { 1.5, 3 }, speed = { sc * 0.5, sc * 2.5 }, size = { sc * 1.2, sc * 2.5 }, color = rgb(0.2, 0.19, 0.18, 0.7), gravity = -0.05, angle = 70, material = fire_mat, grow = { 1, 2.5 }, fade = true }), 25)
+  local light = add(go, "Light")
+  light.type, light.color, light.range, light.intensity = LightType.Point, rgb(1, 0.6, 0.3), radius * 3, 6
+  destroy(light, 0.15)
+  destroy(go, 4)
+  local ground = physics.raycast(point + Vector3.up * sc * 0.5, Vector3.down, radius, physics.ground)
+  if ground and not ground.rigidbody then fx.decal("Scorch", 30, ground.point, ground.normal, Vector3.zero, radius * 0.9, radius * 0.9, scorch_mat) end
+  audio.at(sounds.explosion, point, volume.value * 1.4, rand(0.9, 1.05))
+
+  local pushed = {}
+  for _, col in ipairs(physics.overlap(point, radius)) do
+    local part = physics.part(col)
+    local rb = part and part.rigidBody or col.attachedRigidbody
+    if rb and not rb.isKinematic and not pushed[rb:GetInstanceID()] then
+      pushed[rb:GetInstanceID()] = true
+      if part then
+        if part.ragdoll ~= owner or (part.transform.position - point).magnitude < radius * 0.5 then
+          game.unground(part.ragdoll, true)
+          rb:AddExplosionForce(power * 0.25, point, radius, sc * 0.3, ForceMode.VelocityChange)
+        end
+      else
+        rb:AddExplosionForce(math.min(rb.mass, 200) * power * 0.02, point, radius, sc * 0.3, ForceMode.Impulse)
+      end
+    end
+  end
+  events.emit("explosion", point, radius, power)
+  local me = game.player()
+  if me then
+    local d = (me.spine2.transform.position - point).magnitude
+    if d < radius * 6 then camera.shake(math.max(0.3, 3 * (1 - d / (radius * 6))), 2) end
+  end
+end
+
+local function fire_rocket(me, from, dir, sc, power)
+  local go = primitive("Capsule")
+  go.name = "Rocket"
+  go.transform.localScale = vec(sc * 0.08, sc * 0.18, sc * 0.08)
+  go.transform:SetPositionAndRotation(from, Quaternion.FromToRotation(Vector3.up, dir))
+  go:GetComponent("Renderer").sharedMaterial = rocket_mat
+  local trail = fx.particles(go, { loop = true, rate = 70, lifetime = { 0.4, 0.9 }, speed = { 0, sc * 0.3 }, size = { sc * 0.25, sc * 0.5 }, color = rgb(0.75, 0.72, 0.68, 0.5), material = fire_mat, grow = { 1, 2.5 }, fade = true })
+  table.insert(rockets, { go = go, trail = trail, pos = from, vel = dir * sc * 70, born = Time.time, owner = me, sc = sc, power = power })
+end
+
+local function fly_rockets(dt)
+  for i = #rockets, 1, -1 do
+    local k = rockets[i]
+    local step = k.vel * dt
+    local hit
+    for _, h in ipairs(physics.raycast_all(k.pos, step.normalized, step.magnitude)) do
+      local part = physics.part(h.collider)
+      if not (part and part.ragdoll == k.owner and Time.time - k.born < 0.3) and h.collider.name ~= "Rocket" then hit = h break end
+    end
+    if hit or Time.time - k.born > 6 or not alive(k.go) then
+      if hit then explode(hit.point, hit.normal, k.sc, k.power, k.owner) end
+      if alive(k.go) then
+        fx.rate(k.trail, 0)
+        k.trail.transform.parent = nil
+        destroy(k.trail.gameObject, 1)
+        destroy(k.go)
+      end
+      table.remove(rockets, i)
+    else
+      k.vel = k.vel + Physics.gravity * dt * 0.15
+      k.pos = k.pos + step
+      k.go.transform:SetPositionAndRotation(k.pos, Quaternion.FromToRotation(Vector3.up, k.vel))
+    end
+  end
+end
+
 local function shoot(me)
   local def, sc = held.def, game.scale(me)
   local from = held.muzzle.position
@@ -264,6 +359,18 @@ local function shoot(me)
   local spread = (def.spread + st.bloom) * (st.aiming and 0.3 or 1) * (me.velocity.magnitude > 20 and 1.8 or 1)
   dir = Quaternion.AngleAxis(rand(0, 360), dir) * (Quaternion.AngleAxis(rand(0, spread), Vector3.Cross(dir, Vector3.up).normalized) * dir)
   st.bloom = math.min(2.5, st.bloom + def.bloom)
+
+  if def.launcher then
+    fire_rocket(me, from + dir * sc * 0.4, dir, sc, def.power * damage.value)
+    play(def.shots[1], 1)
+    muzzle_flash(sc)
+    st.kick = 1
+    local rig = camera.rig()
+    rig.pitch = rig.pitch - def.kick * recoil.value
+    st.recoil_debt = st.recoil_debt + def.kick * recoil.value * 0.75
+    camera.shake(0.4 * recoil.value, 6)
+    return
+  end
 
   local stop = from + dir * 1500
   for _, h in ipairs(physics.raycast_all(from, dir, 3000)) do
@@ -288,7 +395,7 @@ local function shoot(me)
     end
   end
 
-  play(def.shots[randi(1, #def.shots + 1)], 1)
+  play(def.shots[randi(1, #def.shots + 1)], 1, (def.pitch or 1) * rand(0.96, 1.04))
   muzzle_flash(sc)
   tracer(from, stop, sc)
   shell(sc)
@@ -312,10 +419,12 @@ end
 
 menu.button("Glock", function() equip(guns[1]) end)
 menu.button("AK-47", function() equip(guns[2]) end)
+menu.button("M4A1", function() equip(guns[3]) end)
+menu.button("Panzerschreck", function() equip(guns[4]) end)
 menu.button("Holster", holster)
 
 function on_unload() holster() end
-function on_round_start() held, st.heading, st.force_aim = nil, nil, nil; reset_camera() end
+function on_round_start() held, st.heading, st.force_aim, rockets = nil, nil, nil, {}; reset_camera() end
 
 function update(dt)
   local me = game.player()
@@ -360,6 +469,7 @@ function update(dt)
 end
 
 function fixed_update(dt)
+  fly_rockets(dt)
   if not ready() then return end
   local me = held.owner
   local sc = game.scale(me)

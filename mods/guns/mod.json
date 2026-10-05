@@ -1,13 +1,16 @@
 {
   "id": "guns",
   "name": "Guns",
-  "version": "3.1.2",
+  "version": "3.2.0",
   "author": "Modz",
-  "description": "A Glock 17 and an AK-47 with recoil, aiming down sights and reloads, in third and first person.",
+  "description": "A Glock 17, an AK-47, an M4A1 and a Panzerschreck rocket launcher, with recoil, aiming and reloads.",
   "dependencies": [],
   "credits": [
     "Glock model by thronetools, CC-BY 4.0, https://sketchfab.com/thronetools",
     "AK-47 model by ErhanMatur, CC-BY 4.0, https://sketchfab.com/erhanmatur",
-    "Gun sounds: OpenGameArt, CC0"
+    "Gun sounds: OpenGameArt, CC0",
+    "M4A1: \"Low Poly Colt M4A1\" by puresaltt, CC-BY 4.0, https://sketchfab.com/3d-models/low-poly-colt-m4a1-de142447b4d047bbb0311c2974520f1e",
+    "Panzerschreck: \"Panzerschreck\" by Tactical_Gamer, CC-BY 4.0, https://sketchfab.com/3d-models/panzerschreck-33546ba8dab24ae695966602092b9b44",
+    "Explosion and rocket sounds: made for Modz, CC0"
   ]
 }
