@@ -28,8 +28,8 @@ for manifest in sorted(root.glob("mods/*/mod.json")):
     for p in assets:
         if p.suffix.lower() not in (".glb", ".wav"):
             errors.append(f"{p.relative_to(root)}: only .glb and .wav files are allowed")
-    if sum(p.stat().st_size for p in scripts + assets) > 15 * 1024 * 1024:
-        errors.append(f"{folder.name}: larger than 15 MB")
+    if sum(p.stat().st_size for p in scripts + assets) > 20 * 1024 * 1024:
+        errors.append(f"{folder.name}: larger than 20 MB")
     mod.setdefault("dependencies", [])
     mod["files"] = [{
         "path": p.relative_to(root / "mods").as_posix(),

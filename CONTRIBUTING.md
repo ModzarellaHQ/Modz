@@ -46,7 +46,7 @@ mods/<id>/
 | Models | `.glb` (binary glTF), textures embedded. Keep them light: decimate and compress before adding. |
 | Sounds | `.wav`, 16-bit PCM. Mono is enough for most effects. |
 
-A mod is 15 MB at most, scripts and files together. No other file types, no executables and no DLLs.
+A mod is 20 MB at most, scripts and files together. No other file types, no executables and no DLLs.
 
 ## Code
 
