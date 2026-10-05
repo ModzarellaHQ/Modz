@@ -3,11 +3,10 @@ local top_speed = setting.number{ section = "Car", name = "Top speed", default =
 local grip = setting.number{ section = "Car", name = "Tyre grip", default = 1, min = 0.05, max = 3, desc = "Sideways grip. Lower drifts more." }
 local cars = {
   ["BMW M2"] = { file = "m2.glb", length = 4.3 },
-  ["BMW M3 E30"] = { file = "e30.glb", length = 4.1 },
   ["Toyota AE86"] = { file = "ae86.glb", length = 4.0 },
   ["Nissan Skyline R34"] = { file = "r34.glb", length = 4.3 },
 }
-local pick = setting.choice{ section = "Car", name = "Car", default = "BMW M2", options = { "BMW M2", "BMW M3 E30", "Toyota AE86", "Nissan Skyline R34" }, desc = "Which car spawns next." }
+local pick = setting.choice{ section = "Car", name = "Car", default = "BMW M2", options = { "BMW M2", "Toyota AE86", "Nissan Skyline R34" }, desc = "Which car spawns next." }
 local paint = setting.choice{ section = "Car", name = "Paint", default = "Original", options = { "Original", "Estoril Blue", "Alpine White", "Hellrot", "Brilliant Red", "Black Sapphire" }, desc = "Paint colour for the next car." }
 local volume = setting.number{ section = "Car", name = "Engine volume", default = 0.5, min = 0, max = 1, desc = "Car sounds, on top of the game's volume." }
 local steering = setting.number{ section = "Car", name = "Steering", default = 1, min = 0.2, max = 3, desc = "Steering multiplier.", advanced = true }
