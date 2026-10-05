@@ -346,6 +346,24 @@ local function force_hit(part, impact, point, dir)
   hit(state(r), part, impact, point, dir)
 end
 
+events.on("explosion", function(point, radius, power)
+  for _, r in ipairs(game.ragdolls()) do
+    if alive(r) and allowed(r) then
+      local near, best = nil, radius
+      for _, p in ipairs(body.parts(r)) do
+        local d = (p.transform.position - point).magnitude
+        if d < best and body.live(p) then near, best = p, d end
+      end
+      if near then
+        local k = 1 - best / radius
+        local dir = (near.transform.position - point).normalized
+        if dismember.value and k > 0.75 then table.insert(explodes, { g = state(r), at = near.transform.position, vel = dir * power * 0.3 })
+        else force_hit(near, power * k * 0.6, near.transform.position, dir) end
+      end
+    end
+  end
+end)
+
 function on_part_hit(part, c)
   local r = part.ragdoll
   if not r or not r.active or not allowed(r) or c.contactCount == 0 then return end
