@@ -1,0 +1,17 @@
+{
+  "id": "sports-cars",
+  "name": "Sports Cars",
+  "version": "4.0.0",
+  "author": "Modz",
+  "description": "Drive a BMW M2, BMW M3 E30, Toyota AE86 or Nissan Skyline R34 down the hill, with nitro.",
+  "dependencies": [],
+  "replaces": ["bmw"],
+  "credits": [
+    "BMW M2: \"2026 ZACOE BMW G87 M2 Widebody Carbon Fiber Kit\" by Ddiaz Design, CC-BY-NC-SA 4.0, https://sketchfab.com/ddiaz-design (decimated)",
+    "BMW M3 E30: \"[FREE] BMW M3 E30\" by Martin Trafas, CC-BY 4.0, https://sketchfab.com/3d-models/free-bmw-m3-e30-ac3c7013434e403e8faff87948caf422",
+    "Toyota AE86: \"Toyota AE86 Sprinter Trueno Zenki\" by Martin Trafas, CC-BY 4.0, https://sketchfab.com/3d-models/toyota-ae86-sprinter-trueno-zenki-a5737bf3cc9b4179a6e5ebe173ff70d9",
+    "Nissan Skyline R34: \"Nissan R34 Brians Fast Furious\" by vecarz, CC-BY 4.0, https://sketchfab.com/3d-models/nissan-r34-brians-fast-furious-wwwvecarzcom-412aa249c2f548eebf64bdb35f3553af",
+    "Engine and car sounds: OpenGameArt, CC0",
+    "Models resized and simplified for the game"
+  ]
+}

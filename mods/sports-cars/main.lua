@@ -1,6 +1,13 @@
 local power = setting.number{ section = "Car", name = "Engine power", default = 1, min = 0.1, max = 5, desc = "Acceleration multiplier." }
 local top_speed = setting.number{ section = "Car", name = "Top speed", default = 160, min = 30, max = 600, desc = "Engine speed limit (gravity can exceed it)." }
 local grip = setting.number{ section = "Car", name = "Tyre grip", default = 1, min = 0.05, max = 3, desc = "Sideways grip. Lower drifts more." }
+local cars = {
+  ["BMW M2"] = { file = "m2.glb", length = 4.3 },
+  ["BMW M3 E30"] = { file = "e30.glb", length = 4.1 },
+  ["Toyota AE86"] = { file = "ae86.glb", length = 4.0 },
+  ["Nissan Skyline R34"] = { file = "r34.glb", length = 4.3 },
+}
+local pick = setting.choice{ section = "Car", name = "Car", default = "BMW M2", options = { "BMW M2", "BMW M3 E30", "Toyota AE86", "Nissan Skyline R34" }, desc = "Which car spawns next." }
 local paint = setting.choice{ section = "Car", name = "Paint", default = "Original", options = { "Original", "Estoril Blue", "Alpine White", "Hellrot", "Brilliant Red", "Black Sapphire" }, desc = "Paint colour for the next car." }
 local volume = setting.number{ section = "Car", name = "Engine volume", default = 0.5, min = 0, max = 1, desc = "Car sounds, on top of the game's volume." }
 local steering = setting.number{ section = "Car", name = "Steering", default = 1, min = 0.2, max = 3, desc = "Steering multiplier.", advanced = true }
@@ -31,19 +38,20 @@ end
 local function loop(clip) return audio.source(car.go, { clip = clip, loop = true, spatial = 0.75, volume = 0 }) end
 
 local function build(r)
-  local m = model.load("car.glb")
+  local def = cars[pick.value] or cars["BMW M2"]
+  local m = model.load(def.file)
   local s = game.scale(r)
   local c = { s = s, wheels = {}, spin = { 0, 0, 0, 0 }, comp = { 0, 0, 0, 0 }, steer = 0, throttle = 0, upside = 0,
               last_hit = 0, scrape = 0, slip = 0, last_gear = 0, cam_vel = Vector3.zero }
   car = c
-  c.L = 4.3 * s
+  c.L = def.length * s
   c.W = m.BodyBounds.size.x * c.L
   local model_h = m.BodyBounds.size.y * c.L
   c.H = model_h * 0.5
   c.R = m.WheelRadius > 0 and m.WheelRadius * c.L or 0.34 * s
   c.rest = math.max(0.3 * s, c.R * 1.2)
 
-  c.go = new_object("BMW")
+  c.go = new_object("SportsCar")
   local mass = 0
   for _, p in ipairs(body.parts(r)) do if p.rigidBody then mass = mass + p.rigidBody.mass end end
   local M = math.max(1, mass * 6)
@@ -98,15 +106,6 @@ local function build(r)
   c.cam = new_object("CarCamera", c.go.transform).transform
   c.kseat = body.seat(c.go, c.seat, "reclined", c.hands)
 
-  c.lights = {}
-  for i, side in ipairs({ 1, -1 }) do
-    local l = add(new_object("headlight", c.go.transform), "Light")
-    l.transform.localPosition = vec(side * c.W * 0.33, c.H * 0.62, c.L * 0.47)
-    l.transform.localRotation = euler(6, 0, 0)
-    l.type, l.spotAngle, l.range, l.intensity = LightType.Spot, 70, c.L * 6, 2.2
-    l.color, l.shadows, l.enabled = rgb(1, 0.95, 0.85), LightShadows.None, false
-    c.lights[i] = l
-  end
 
   c.low, c.high, c.turbo = loop(sounds.engine_low), loop(sounds.engine_high), loop(sounds.turbo)
   c.squeal, c.scraper = loop(sounds.squeal), loop(sounds.scrape)
@@ -262,7 +261,6 @@ function update(dt)
   local c = car
   if not c or not alive(c.go) then return end
   if c.driver and game.is_local(c.driver) and flip_key.down then flip(c) end
-  for _, l in ipairs(c.lights) do l.enabled = c.driver ~= nil end
 
   local spd = math.abs(Vector3.Dot(c.rb.velocity, c.go.transform.forward))
   local x = Mathf.Clamp01(spd / (top_speed.value * 1.25)) * 6
