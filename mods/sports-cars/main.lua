@@ -44,6 +44,7 @@ local function build(r)
               last_hit = 0, scrape = 0, slip = 0, last_gear = 0, cam_vel = Vector3.zero }
   car = c
   c.L = def.length * s
+  c.model_name = pick.value
   c.W = m.BodyBounds.size.x * c.L
   local model_h = m.BodyBounds.size.y * c.L
   c.H = model_h * 0.5
@@ -237,6 +238,7 @@ local function reset_car()
 end
 
 local function despawn()
+  if net.ready() then net.send("gone", {}, true) end
   if not car then return end
   if car.driver then exit_car(car) end
   destroy(car.go)
@@ -248,13 +250,83 @@ menu.button("Reset", reset_car)
 menu.button("New car", function() despawn(); local me = game.player(); if me then teleport(build(me), me) end end)
 menu.button("Despawn", despawn)
 
-function on_round_start() car = nil; game.set_driver(nil, nil) end
+-- online: other players see your car as a ghost that follows your updates
+
+local net = net or { ready = function() return false end, send = function() end, on = function() end }
+local ghosts, next_send = {}, 0
+
+local function send_car(dt)
+  if not net.ready() or not car or not alive(car.go) then return end
+  if Time.time < next_send then return end
+  local moving = car.rb.velocity.sqrMagnitude > 1
+  next_send = Time.time + (moving and 1 / 15 or 0.5)
+  local t, v = car.go.transform, car.rb.velocity
+  net.send("car", { m = car.model_name, L = car.L, p = { t.position.x, t.position.y, t.position.z },
+    r = { t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w }, v = { v.x, v.y, v.z } })
+end
+
+local function ghost_for(sender, d)
+  local g = ghosts[sender]
+  if g and alive(g.go) and g.m == d.m then return g end
+  if g and alive(g.go) then destroy(g.go) end
+  local def = cars[d.m]
+  if not def then return nil end
+  local m = model.load(def.file)
+  g = { m = d.m, go = new_object("GhostCar") }
+  local body = model.clone(m.Body, g.go.transform)
+  body.transform.localScale = Vector3.one * d.L
+  local centers, wheels = list(m.WheelCenters), list(m.Wheels)
+  for i = 1, #centers do
+    local pivot = new_object("wheel", g.go.transform).transform
+    pivot.localPosition = centers[i] * d.L
+    model.clone(wheels[i], pivot).transform.localScale = Vector3.one * d.L
+  end
+  ghosts[sender] = g
+  return g
+end
+
+local function on_car(sender, d)
+  local g = ghost_for(sender, d)
+  if not g then return end
+  local p = vec(d.p[1], d.p[2], d.p[3])
+  g.target, g.rot, g.vel, g.seen = p, Quaternion.__new(d.r[1], d.r[2], d.r[3], d.r[4]), vec(d.v[1], d.v[2], d.v[3]), Time.time
+  if not g.placed then g.go.transform:SetPositionAndRotation(p, g.rot) g.placed = true end
+end
+net.on("car", on_car)
+
+net.on("gone", function(sender)
+  local g = ghosts[sender]
+  if g and alive(g.go) then destroy(g.go) end
+  ghosts[sender] = nil
+end)
+
+local function move_ghosts(dt)
+  for sender, g in pairs(ghosts) do
+    if not alive(g.go) or Time.time - g.seen > 3 then
+      if alive(g.go) then destroy(g.go) end
+      ghosts[sender] = nil
+    else
+      local predicted = g.target + g.vel * (Time.time - g.seen)
+      local t = g.go.transform
+      local k = 1 - math.exp(-dt * 12)
+      t:SetPositionAndRotation(Vector3.Lerp(t.position, predicted, k), Quaternion.Slerp(t.rotation, g.rot, k))
+    end
+  end
+end
+
+function on_round_start()
+  car = nil; game.set_driver(nil, nil)
+  for _, g in pairs(ghosts) do if alive(g.go) then destroy(g.go) end end
+  ghosts = {}
+end
 function on_unload() despawn() end
 
 local test = nil
 function test_drive(throttle, steer, nitro, brake) test = throttle and { throttle, steer or 0, nitro, brake } or nil end
 
 function update(dt)
+  send_car(dt)
+  move_ghosts(dt)
   if enter_key.down then toggle_drive() end
   if reset_key.down then reset_car() end
   local c = car
@@ -406,3 +478,4 @@ function draw()
   ui.hud(string.format("%d km/h", math.floor(c.rb.velocity.magnitude * 0.36)),
     string.format("WASD drive · Space brake · Shift nitro · H horn · %s flip · %s reset · %s exit", flip_key.label, reset_key.label, enter_key.label))
 end
+

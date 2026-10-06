@@ -1,9 +1,9 @@
 {
   "id": "sports-cars",
   "name": "Sports Cars",
-  "version": "4.0.1",
+  "version": "4.1.0",
   "author": "Modz",
-  "description": "Drive a BMW M2, Toyota AE86 or Nissan Skyline R34 down the hill, with nitro.",
+  "description": "Drive a BMW M2, Toyota AE86 or Nissan Skyline R34 down the hill. Online, others with the mod see your car.",
   "dependencies": [],
   "replaces": [
     "bmw"
