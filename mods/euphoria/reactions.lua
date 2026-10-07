@@ -1,5 +1,6 @@
 local M = {}
 
+local THROES = 2.5
 
 local brains = {}
 local hold, step = 0, 0
@@ -15,7 +16,7 @@ local function brain(r)
   local id = r:GetInstanceID()
   local b = brains[id]
   if not b then
-    b = { off_feet = 0, seed = math.random() * 100 }
+    b = { off_feet = 0, death_time = -1, seed = math.random() * 100 }
     brains[id] = b
   end
   return b
@@ -70,9 +71,27 @@ local function tick(r)
   local k, d = 240 * M.strength.value, 18
   local sc = game.scale(r)
   local root = r.spine1.rigidBody
+  local dead = body.dead(r)
   local hit = body.last_hit(r)
   local since = hit and Time.time - hit.time or 99
 
+  if dead then
+    if b.death_time < 0 then b.death_time = Time.time end
+    local t = Time.time - b.death_time
+    if t < THROES then
+      local fade = 1 - t / THROES
+      for _, p in ipairs(body.parts(r)) do
+        if math.random() < 0.06 * fade and body.live(p) then
+          p.rigidBody:AddTorque(Random.insideUnitSphere * 25 * fade, ForceMode.VelocityChange)
+        end
+      end
+      if hit and body.live(hit.part) then
+        reach(r.handRight, r.lowerArmRight, r.upperArmRight, hit.part.transform.position, k * 0.4 * fade, d)
+      end
+    end
+    return
+  end
+  b.death_time = -1
 
   if game.grounded(r) then
     b.off_feet = 0
