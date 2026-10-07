@@ -2,13 +2,12 @@ local S = "Euphoria"
 local strength = setting.number{ section = S, name = "Muscle strength", default = 1, min = 0.2, max = 3, desc = "How hard bodies fight to stay up and protect themselves." }
 local blood_amount = setting.number{ section = S, name = "Blood", default = 3, min = 0, max = 8, desc = "How much blood everything sprays. 0 turns blood off." }
 local dismember = setting.toggle{ section = S, name = "Limbs come off", default = true, desc = "Hard hits tear limbs off." }
-local deaths = setting.toggle{ section = S, name = "Deaths", default = true, desc = "Bodies can bleed out or be killed. When you die, Enter starts the next round." }
 local on_you = setting.toggle{ section = S, name = "Affects you", default = true, desc = "Your own body reacts and gets hurt too." }
 local screen_blood = setting.toggle{ section = S, name = "Blood on screen", default = true, desc = "Blood splashes on the screen when it happens right next to the camera." }
 local volume = setting.number{ section = S, name = "Volume", default = 0.8, min = 0, max = 1, desc = "Squelches, cracks and splats." }
 local toughness = setting.number{ section = S, name = "Toughness", default = 1, min = 0.3, max = 3, desc = "Higher means bodies take harder hits before bleeding or losing limbs.", advanced = true }
 
-local BLEED_OUT, STUMP_SECONDS, GIB_LIFE = 30, 25, 45
+local STUMP_SECONDS, GIB_LIFE = 25, 45
 local function bleed_impact() return 75 * toughness.value end
 local function sever_impact() return 150 * toughness.value end
 
@@ -23,10 +22,9 @@ for i = 0, 3 do tints[i + 1] = mat.unlit(decal_tex, Color.Lerp(rgb(0.45, 0, 0.02
 local track_mats = {}
 for i = 0, 3 do track_mats[i + 1] = mat.unlit(decal_tex, rgb(0.4, 0, 0.02, 0.25 + 0.22 * i)) end
 local splat_tex = { mat.blob(128, 0.45, 40), mat.blob(128, 0.45, 41), mat.blob(128, 0.45, 42) }
-local vignette = mat.vignette()
 
 local states, bleeders, splats, severs, explodes = {}, {}, {}, {}, {}
-local heart, next_screen_blood = nil, 0
+local next_screen_blood = 0
 
 local function vol(v) return v * volume.value end
 local function sound(name, at, v) audio.at(sounds[name], at, vol(v), rand(0.85, 1.15)) end
@@ -130,29 +128,12 @@ end
 
 -- per-ragdoll state
 
-local function lose_blood(g, amount)
-  if g.dead then return end
-  g.lost = g.lost + amount
-  if g.lost >= BLEED_OUT then g.die("bled out") end
-end
-
 local function state(r)
   local id = r:GetInstanceID()
   local g = states[id]
   if g then return g end
-  g = { r = r, damage = {}, severed = {}, bleeders = {}, lost = 0, dead = false, reason = "", wounds = {}, stain = 0, last_sever = 0 }
+  g = { r = r, damage = {}, severed = {}, bleeders = {}, wounds = {}, stain = 0, last_sever = 0 }
   states[id] = g
-
-  function g.die(why)
-    if g.dead or not alive(r) then return end
-    if not deaths.value then return end
-    g.reason = why
-    if game.seated(r) then return end
-    g.dead = true
-    body.set_dead(r, true)
-    sound("crack", r:GetRootPosition(), 0.6)
-    if game.is_local(r) then toast("You died (" .. why .. ")") end
-  end
 
   function g.stain_body(add)
     if not g.mats then
@@ -210,7 +191,6 @@ local function hit(g, part, impact, point, rel)
   if dismember.value and impact >= sever * 3 then table.insert(explodes, { g = g, at = point, vel = rel }) return end
   burst(point, -rel.normalized, game.scale(r), Mathf.Clamp(0.5 + dmg * 1.5, 0.5, 3))
   if dmg > 0.3 then g.wound(part, point, rel) end
-  lose_blood(g, Mathf.Clamp(dmg, 0, 2) * BLEED_OUT * 0.04)
   g.stain_body(0.04 + dmg * 0.12)
   sound(dmg > 0.5 and "crack" or "splat", point, Mathf.Clamp(0.3 + dmg, 0.3, 1))
   g.bleed(part, Mathf.Clamp(2 + dmg * 4, 2, 7), Mathf.Clamp01(0.3 + dmg))
@@ -290,9 +270,6 @@ local function do_sever(g, part, rel)
   sound("squelch", at, 1)
   sound("crack", at, 0.8)
   g.stain_body(0.2)
-  lose_blood(g, BLEED_OUT * (part == r.head and 1 or 0.18))
-  if part == r.head then g.die("decapitated") end
-  if part == r.spine2 then g.die("torn in half") end
   refresh(attach_bleeder(parent.transform, at, scale, true, g, parent.rigidBody), STUMP_SECONDS, 1)
   burst(at, Random.onUnitSphere, scale, 3.5)
   log((game.is_local(r) and "You" or r.name) .. " lost " .. body.name(r, part))
@@ -311,7 +288,6 @@ local function explode(g, at, vel)
   for _, p in ipairs({ r.head, r.upperArmLeft, r.upperArmRight, r.upperLegLeft, r.upperLegRight, r.spine2 }) do
     table.insert(severs, { g = g, part = p, vel = vel + Random.onUnitSphere * sc * 4 })
   end
-  g.die("blown to pieces")
 end
 
 local function allowed(r)
@@ -330,7 +306,6 @@ events.on("bullet_hit", function(part, point, dir, power)
   burst(point + dir * sc * 0.15, dir, sc, 0.25 + power / 1200)
   g.wound(part, point, dir)
   g.bleed(part, 30, 0.9)
-  lose_blood(g, BLEED_OUT * (part == r.head and 0.5 or (part == r.spine1 or part == r.spine2) and 0.14 or 0.06))
   sound("splat", point, 0.8)
   if part == r.head and power > 120 and dismember.value then
     g.head_burst = true
@@ -441,7 +416,6 @@ end
 
 function on_round_start()
   states, bleeders, splats, severs, explodes, crushed, wet, last_track = {}, {}, {}, {}, {}, {}, {}, {}
-  heart = nil
   euphoria.reset()
 end
 
@@ -480,7 +454,6 @@ function update(dt)
         if b.ps.particleCount == 0 then destroy(b.go); table.remove(bleeders, i) end
       else
         local fade = Mathf.Clamp01(left / 2)
-        if b.owner then lose_blood(b.owner, (b.stump and 1 or 0.25) * b.intensity * fade * dt) end
         grow_pool(b, fade)
         local beat = b.stump and math.max(0, math.sin(Time.time * 7.5)) ^ 4 or 0.5
         fx.rate(b.ps, (b.stump and 170 * beat + 18 or 30) * b.intensity * fade * blood_amount.value)
@@ -498,24 +471,7 @@ function update(dt)
       end
     end
   end
-
-  local me = game.player()
-  local g = me and states[me:GetInstanceID()]
-  if not alive(heart) then heart = audio.source(new_object("Heartbeat"), { clip = sounds.heartbeat, loop = true, spatial = 0, volume = 0 }) end
-  local lost = g and Mathf.Clamp01(g.lost / BLEED_OUT) or 0
-  heart.volume = (g and not g.dead and lost > 0.35) and Mathf.InverseLerp(0.35, 1, lost) * volume.value * audio.sfx() * 1.5 or 0
-  heart.pitch = 0.9 + lost * 0.7
-  if g and g.dead and input.key_down("enter") then game.next_round() end
-
-  for _, s in pairs(states) do
-    if alive(s.r) and not s.dead and not game.is_local(s.r) then
-      local f = s.lost / BLEED_OUT
-      if f > 0.5 and math.random() < dt * f * 0.8 then game.unground(s.r, true) end
-    end
-  end
 end
-
-local reasons = { decapitated = "You lost your head", ["torn in half"] = "You were torn in half", ["blown to pieces"] = "You were blown to pieces" }
 
 function draw()
   for i = #splats, 1, -1 do
@@ -524,23 +480,6 @@ function draw()
     if t >= 1 then table.remove(splats, i) else
       ui.texture(s.tex, s.x, s.y + t * s.h * 0.4, s.w, s.h, rgb(0.45, 0, 0.01, 0.6 * (1 - t * t)), s.rot)
     end
-  end
-  local me = game.player()
-  local g = me and states[me:GetInstanceID()]
-  if not g then return end
-  local lost = Mathf.Clamp01(g.lost / BLEED_OUT)
-  local w, h = ui.width(), ui.height()
-  if lost > 0.05 or g.dead then
-    local pulse = lost > 0.5 and 0.1 * math.max(0, math.sin(Time.time * (4 + lost * 6))) or 0
-    ui.texture(vignette, 0, 0, w, h, rgb(0.5, 0, 0, Mathf.Clamp01(lost * 0.55 + pulse + (g.dead and 0.5 or 0))))
-    if not g.dead then
-      ui.text(lost > 0.6 and "Bleeding out" or "Blood", 24, h - 64, 240, 20, { size = 13, bold = true, color = rgb(1, 0.85, 0.8) })
-      ui.bar(24, h - 42, 240, 12, 1 - lost, Color.Lerp(rgb(0.9, 0.1, 0.1), rgb(0.35, 0, 0), lost))
-    end
-  end
-  if g.dead then
-    ui.text(reasons[g.reason] or "You bled out", 0, h * 0.36, w, 70, { size = 52, bold = true, align = "center", color = rgb(0.92, 0.12, 0.1) })
-    ui.text("Press Enter for the next round", 0, h * 0.36 + 72, w, 30, { size = 18, align = "center" })
   end
 end
 
