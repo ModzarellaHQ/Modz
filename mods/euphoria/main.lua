@@ -2,7 +2,7 @@ local S = "Euphoria"
 local strength = setting.number{ section = S, name = "Muscle strength", default = 1, min = 0.2, max = 3, desc = "How hard bodies fight to stay up and protect themselves." }
 local blood_amount = setting.number{ section = S, name = "Blood", default = 3, min = 0, max = 8, desc = "How much blood everything sprays. 0 turns blood off." }
 local dismember = setting.toggle{ section = S, name = "Limbs come off", default = true, desc = "Hard hits tear limbs off." }
-local deaths = setting.toggle{ section = S, name = "Deaths", default = true, desc = "Bodies can bleed out or be killed. When you die, Enter starts the next round." }
+local deaths = setting.toggle{ section = S, name = "Deaths", default = true, desc = "Bodies can bleed out or be killed." }
 local on_you = setting.toggle{ section = S, name = "Affects you", default = true, desc = "Your own body reacts and gets hurt too." }
 local screen_blood = setting.toggle{ section = S, name = "Blood on screen", default = true, desc = "Blood splashes on the screen when it happens right next to the camera." }
 local volume = setting.number{ section = S, name = "Volume", default = 0.8, min = 0, max = 1, desc = "Squelches, cracks and splats." }
@@ -505,7 +505,6 @@ function update(dt)
   local lost = g and Mathf.Clamp01(g.lost / BLEED_OUT) or 0
   heart.volume = (g and not g.dead and lost > 0.35) and Mathf.InverseLerp(0.35, 1, lost) * volume.value * audio.sfx() * 1.5 or 0
   heart.pitch = 0.9 + lost * 0.7
-  if g and g.dead and input.key_down("enter") then game.next_round() end
 
   for _, s in pairs(states) do
     if alive(s.r) and not s.dead and not game.is_local(s.r) then
@@ -514,8 +513,6 @@ function update(dt)
     end
   end
 end
-
-local reasons = { decapitated = "You lost your head", ["torn in half"] = "You were torn in half", ["blown to pieces"] = "You were blown to pieces" }
 
 function draw()
   for i = #splats, 1, -1 do
@@ -537,10 +534,6 @@ function draw()
       ui.text(lost > 0.6 and "Bleeding out" or "Blood", 24, h - 64, 240, 20, { size = 13, bold = true, color = rgb(1, 0.85, 0.8) })
       ui.bar(24, h - 42, 240, 12, 1 - lost, Color.Lerp(rgb(0.9, 0.1, 0.1), rgb(0.35, 0, 0), lost))
     end
-  end
-  if g.dead then
-    ui.text(reasons[g.reason] or "You bled out", 0, h * 0.36, w, 70, { size = 52, bold = true, align = "center", color = rgb(0.92, 0.12, 0.1) })
-    ui.text("Press Enter for the next round", 0, h * 0.36 + 72, w, 30, { size = 18, align = "center" })
   end
 end
 
